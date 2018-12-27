@@ -8,5 +8,5 @@ pub enum Color {
 // TODO add converstion between RGB and HSV
 
 pub struct ColorFunction<F: Fn(u32, Complex) -> Color> {
-    func: F,
+    _func: F,
 }

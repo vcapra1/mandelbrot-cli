@@ -1,5 +1,5 @@
 use crate::util::Config;
 
-pub fn begin(config: Config) {
+pub fn begin(_config: Config) {
 
 }

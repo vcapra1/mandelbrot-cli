@@ -11,7 +11,7 @@ pub struct Parameters {
 
 #[derive(Clone)]
 pub struct Render {
-    params: Parameters,
+    pub params: Parameters,
     pub iterations: u32,
     pub pixels: Vec<(u32, Complex, Complex, bool)>,
 }
@@ -34,12 +34,17 @@ impl Render {
         let mapping = Complex::get_mapping(params.image_size, (params.center, params.radius));
 
         // Populate the list
-        for idx in 0..pixels.len() {
+        for idx in 0..pixels.capacity() {
             let x = idx as u32 % params.image_size.0;
             let y = idx as u32 / params.image_size.0;
 
             // Convert the (x, y) image coords to complex coords based on the window
             let complex = mapping(x, y);
+
+            let diverged = complex.abs() > 2.0;
+
+            // Insert Pixel into vector
+            pixels.push((0, complex, Complex(0.0, 0.0), diverged));
         }
 
         Render {
@@ -50,13 +55,18 @@ impl Render {
     }
 
     // Run a specified number of iterations on the Render
-    pub fn run(&mut self, iterations: u32) {
-        // Generate transferrable struct for sending data to C
-        let data = FFIRenderData::from(self.clone());
-        
+    pub fn run(&mut self, iterations: u32) -> Result<(), String> {
         // Call the C code, passing the data struct and the number of iterations to do
-        let result = compute(data, iterations);
+        let result = compute(self.clone(), iterations);
         
-        // TODO: update self with the results
+        // Update self with the results
+        match result {
+            Ok(result) => {
+                self.pixels = result.pixels;
+                self.iterations = result.iterations;
+                Ok(())
+            },
+            Err(RenderError(message)) => Err(message)
+        }
     }
 }

@@ -2,7 +2,7 @@ use crate::util::Config;
 use crate::render::*;
 use crate::math::*;
 
-pub fn begin(config: Config) {
+pub fn begin(_config: Config) {
     // Create a render object
     let mut render = Render::new(Parameters {
         image_size: (1000, 1000),
@@ -11,5 +11,8 @@ pub fn begin(config: Config) {
         radius: 2.0
     });
 
-    render.run(1000);
+    match render.run(1000) {
+        Ok(_) => println!("All good!"),
+        Err(s) => println!("Error: {}", s)
+    };
 }

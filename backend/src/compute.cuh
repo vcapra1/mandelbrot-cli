@@ -15,11 +15,11 @@ typedef struct {
 } Pixel;
 
 typedef struct {
+	Pixel *pixels;
     uint32_t iterations;
 	uint32_t num;
-	Pixel pixels[];
 } RenderData;
 
 extern "C" {
-	uint32_t cuda_compute(RenderData data, uint32_t iterations);
+	uint32_t cuda_compute(uint32_t iterations, RenderData data);
 }

@@ -4,10 +4,10 @@ use std::error;
 use crate::render::Render;
 use crate::math::Complex;
 
-type Result = std::result::Result<(), RenderError>;
+type Result = std::result::Result<Render, RenderError>;
 
 #[derive(Debug, Clone)]
-pub struct RenderError(String);
+pub struct RenderError(pub String);
 
 type FFIReal = f64;
 
@@ -25,37 +25,54 @@ struct FFIPixel {
     d: bool,
 }
 
+#[derive(Clone)]
 #[repr(C)]
 pub struct FFIRenderData {
+    pixels: *mut FFIPixel,
     iterations: u32,
     num: u32,
-    pixels: *mut FFIPixel,
 }
 
 extern "C" {
-    fn cuda_compute(data: FFIRenderData, iterations: u32) -> u32;
+    fn cuda_compute(iterations: u32, data: FFIRenderData) -> u32;
 }
 
-pub fn compute(data: FFIRenderData, iterations: u32) -> Result {
-    // Call C code
-    let result_code = unsafe {
-        cuda_compute(data, iterations)
+pub fn compute(render: Render, iterations: u32) -> Result {
+    // Convert to FFI-safe array
+    let mut pixels_vec: Vec<FFIPixel> = render.pixels.iter().map(|p| FFIPixel { 
+        c: FFIComplex::from(p.1), z: FFIComplex::from(p.2), i: p.0, d: p.3 
+    }).collect();
+
+    let data = FFIRenderData {
+        pixels: pixels_vec.as_mut_ptr(),
+        iterations: render.iterations,
+        num: render.pixels.len() as u32,
     };
 
-    println!("Result from C: {}", result_code);
+    std::mem::forget(pixels_vec);
 
-    Ok(())
-}
+    // Call C code
+    let result_code = unsafe {
+        cuda_compute(iterations, data.clone())
+    };
 
-impl From<Render> for FFIRenderData {
-    fn from(render: Render) -> FFIRenderData {
-        // Convert to FFI-safe array
-        let mut pixels_vec: Vec<FFIPixel> = render.pixels.iter().map(|p| FFIPixel { c: FFIComplex::from(p.1), z: FFIComplex::from(p.2), i: p.0, d: p.3 } ).collect();
-        FFIRenderData {
-            iterations: render.iterations,
-            pixels: pixels_vec.as_mut_ptr(),
-            num: render.pixels.len() as u32,
-        }
+    match result_code {
+        0 => {
+            // Get pixels vec back
+            let pixels_vec = unsafe {
+                Vec::from_raw_parts(data.pixels, data.num as usize, data.num as usize)
+            };
+
+            let render = Render {
+                iterations: render.iterations + iterations,
+                pixels: pixels_vec.iter().map(|p| (
+                    p.i, p.c.to_complex(), p.z.to_complex(), p.d
+                )).collect(),
+                ..render
+            };
+            Ok(render)
+        },
+        c => Err(RenderError(format!("CUDA Error [{}].", c)))
     }
 }
 
@@ -65,6 +82,12 @@ impl From<Complex> for FFIComplex {
             real: complex.0,
             imag: complex.1
         }
+    }
+}
+
+impl FFIComplex {
+    fn to_complex(&self) -> Complex {
+        Complex(self.real, self.imag)
     }
 }
 
