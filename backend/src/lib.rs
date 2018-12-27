@@ -1,5 +1,7 @@
 pub mod util;
 
+pub mod cuda;
+
 pub mod gui;
 pub mod cli;
 

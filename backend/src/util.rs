@@ -6,7 +6,7 @@ pub struct Config {
 pub fn parse_args(args: Vec<String>) -> Config {
     // Application config according to the arguments
     let mut config = Config {
-        gui: true,
+        gui: false,
         port: Some(37228)
     };
 
@@ -19,9 +19,6 @@ pub fn parse_args(args: Vec<String>) -> Config {
             if arg == "-g" || arg == "--gui" {
                 // Set the GUI flag
                 config.gui = true;
-            } else if arg == "--no-gui" {
-                // Clear the GUI flag
-                config.gui = false;
             } else if arg == "-p" || arg == "--port" {
                 // Specifying the port
                 expecting = 1;

@@ -5,3 +5,7 @@ authors = ["vinnie"]
 edition = "2018"
 
 [dependencies]
+libc = "0.2.0"
+
+[build-dependencies]
+cc = "1.0"

@@ -6,6 +6,21 @@ pub type Real = f64;
 pub struct Complex(pub Real, pub Real);
 
 impl Complex {
+    pub fn get_mapping((w, h): (u32, u32), (center, radius): (Complex, Real)) -> Box<dyn Fn(u32, u32) -> Complex> {
+        let (scale, shift) = if w >= h {
+            // Radius maps to height
+            (2.0 * radius / h as Real, Complex(center.0 - radius * w as Real / h as Real, center.1 + radius))
+        } else {
+            // Radius maps to width
+            (2.0 * radius / w as Real, Complex(center.0 - radius, center.1 + radius * h as Real / w as Real))
+        };
+        Box::new(move |x: u32, y: u32| {
+            let x = x as Real * scale;
+            let y = y as Real * -scale;
+            Complex(x, y) + shift
+        })
+    }
+
     pub fn abs_squared(&self) -> Real {
         (self.0 * self.0 + self.1 * self.1)
     }
