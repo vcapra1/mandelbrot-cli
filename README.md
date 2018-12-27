@@ -4,7 +4,8 @@
 There is the notion of a `Render`, which is essentially a 2-dimensional array of tuples, each corresponding to a pixel and containing the following information:
 * The complex coordinate corresponding to the pixel (c)
 * The complex value z, calculated at the current iteration
-* The number of iterations that this pixel has been computed for
+* The number of iterations that this pixel has been computed for, and
+* Whether or not the pixel has diverged
 
 The `Render` structure also stores information about the image's size and number of iterations calculated so far.
 
