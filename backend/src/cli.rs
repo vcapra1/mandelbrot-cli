@@ -12,7 +12,10 @@ pub fn begin(_config: Config) {
     });
 
     match render.run(1000) {
-        Ok(_) => println!("All good!"),
+        Ok(_) => {
+            println!("All good!");
+            println!("i[0] = {}", render.pixels[0].0);
+        },
         Err(s) => println!("Error: {}", s)
     };
 }

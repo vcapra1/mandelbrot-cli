@@ -18,8 +18,10 @@ typedef struct {
 	Pixel *pixels;
     uint32_t iterations;
 	uint32_t num;
+	uint32_t width;
+	uint32_t height;
 } RenderData;
 
 extern "C" {
-	uint32_t cuda_compute(uint32_t iterations, RenderData data);
+	uint32_t cuda_compute(uint32_t iterations, RenderData data, uint32_t *progress);
 }

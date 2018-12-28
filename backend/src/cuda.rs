@@ -31,10 +31,12 @@ pub struct FFIRenderData {
     pixels: *mut FFIPixel,
     iterations: u32,
     num: u32,
+    width: u32,
+    height: u32
 }
 
 extern "C" {
-    fn cuda_compute(iterations: u32, data: FFIRenderData) -> u32;
+    fn cuda_compute(iterations: u32, data: FFIRenderData, progress: *mut u32) -> u32;
 }
 
 pub fn compute(render: Render, iterations: u32) -> Result {
@@ -47,17 +49,45 @@ pub fn compute(render: Render, iterations: u32) -> Result {
         pixels: pixels_vec.as_mut_ptr(),
         iterations: render.iterations,
         num: render.pixels.len() as u32,
+        width: render.params.image_size.0,
+        height: render.params.image_size.1,
     };
 
     std::mem::forget(pixels_vec);
 
+    // Progress counter
+    let mut progress: u32 = 0;
+
+    let progress_ptr: u64 = (&mut progress as *mut u32) as u64;
+
+    /* TODO TODO TODO let progress_thread = std::thread::spawn(move || {
+        unsafe {
+            loop {
+                // FIXME This really seems sketchy
+                let progress = *(progress_ptr as *mut u32);
+                if progress == 999 {
+                    break;
+                }
+                println!("Progress: {}%", progress);
+                if progress >= 100 {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_secs(1));
+            }
+        }
+    });*/
+
     // Call C code
     let result_code = unsafe {
-        cuda_compute(iterations, data.clone())
+        cuda_compute(iterations, data.clone(), &mut progress as *mut u32)
     };
 
     match result_code {
         0 => {
+            // Stop the progress thread
+            progress = 100;
+            // TODO progress_thread.join();
+
             // Get pixels vec back
             let pixels_vec = unsafe {
                 Vec::from_raw_parts(data.pixels, data.num as usize, data.num as usize)
@@ -72,7 +102,13 @@ pub fn compute(render: Render, iterations: u32) -> Result {
             };
             Ok(render)
         },
-        c => Err(RenderError(format!("CUDA Error [{}].", c)))
+        c => {
+            // Stop the progress thread
+            progress = 999;
+            // TODO progress_thread.join();
+
+            Err(RenderError(format!("CUDA Error [{}].", c)))
+        }
     }
 }
 
