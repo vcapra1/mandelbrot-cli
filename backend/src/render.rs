@@ -1,12 +1,13 @@
 use crate::math::*;
 use crate::cuda::*;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Parameters {
     pub image_size: (u32, u32),
     pub supersampling: u32,
     pub center: Complex,
     pub radius: Real,
+    pub max_iter: u32
 }
 
 #[derive(Clone)]
@@ -17,6 +18,16 @@ pub struct Render {
 }
 
 impl Render {
+    pub fn default() -> Render {
+        Render::new(Parameters {
+            image_size: (1000, 1000),
+            supersampling: 1,
+            center: Complex(0.0, 0.0),
+            radius: 2.0,
+            max_iter: 500
+        })
+    }
+
     pub fn new(mut params: Parameters) -> Render {
         // Verify supersampling
         if params.supersampling == 0 {
@@ -54,10 +65,25 @@ impl Render {
         }
     }
 
+    // Using the params, recalculate the pixel array
+    pub fn recalc(&mut self, params: &Parameters) {
+        if self.params.image_size == params.image_size
+          && self.params.supersampling == params.supersampling
+          && self.params.center == params.center
+          && self.params.radius == params.radius
+          && self.params.max_iter >= params.max_iter {
+            // We won't need to recalculate the pixel array
+            self.params = params.clone();
+        } else {
+            // We do need to recaluclate
+            *self = Render::new(params.clone());
+        }
+    }
+
     // Run a specified number of iterations on the Render
-    pub fn run(&mut self, iterations: u32) -> Result<(), String> {
+    pub fn run(&mut self) -> Result<(), String> {
         // Call the C code, passing the data struct and the number of iterations to do
-        let result = compute(self.clone(), iterations);
+        let result = compute(self.clone());
         
         // Update self with the results
         match result {

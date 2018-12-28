@@ -9,14 +9,14 @@ pub struct Image {
 }
 
 impl Image {
-    pub fn new(render: Render, color_func: ColorFunction) -> Image {
+    pub fn new(render: &Render, color_func: ColorFunction) -> Image {
         let pixels: Vec<_> = render.pixels.iter().map(|(i, _, z, _)| {
             (*color_func.func)(*i, render.iterations, *z)
         }).collect();
         Image { pixels, size: render.params.image_size }
     }
 
-    pub fn export(&self, path: &str) { 
+    pub fn export(&self, path: String) -> std::io::Result<()> { 
         let mut img = image::RgbImage::new(self.size.0, self.size.1);
 
         for (x, y, pixel) in img.enumerate_pixels_mut() {
@@ -29,6 +29,6 @@ impl Image {
             }
         }
 
-        img.save(path).unwrap();
+        img.save(&path)
     }
 }

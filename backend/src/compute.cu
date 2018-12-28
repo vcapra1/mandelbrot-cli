@@ -108,6 +108,9 @@ extern "C" {
 		// Free memory
 		cudaFree(pixels);
 
+		// Set progress to 100%
+		*progress = 100;
+
 		return 0;
 	}
 }

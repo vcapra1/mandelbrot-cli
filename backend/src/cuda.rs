@@ -39,7 +39,7 @@ extern "C" {
     fn cuda_compute(iterations: u32, data: FFIRenderData, progress: *mut u32) -> u32;
 }
 
-pub fn compute(render: Render, iterations: u32) -> Result {
+pub fn compute(render: Render) -> Result {
     // Convert to FFI-safe array
     let mut pixels_vec: Vec<FFIPixel> = render.pixels.iter().map(|p| FFIPixel { 
         c: FFIComplex::from(p.1), z: FFIComplex::from(p.2), i: p.0, d: p.3 
@@ -79,7 +79,7 @@ pub fn compute(render: Render, iterations: u32) -> Result {
 
     // Call C code
     let result_code = unsafe {
-        cuda_compute(iterations, data.clone(), &mut progress as *mut u32)
+        cuda_compute(render.params.max_iter, data.clone(), &mut progress as *mut u32)
     };
 
     match result_code {
@@ -94,7 +94,7 @@ pub fn compute(render: Render, iterations: u32) -> Result {
             };
 
             let render = Render {
-                iterations: render.iterations + iterations,
+                iterations: render.params.max_iter,
                 pixels: pixels_vec.iter().map(|p| (
                     p.i, p.c.to_complex(), p.z.to_complex(), p.d
                 )).collect(),

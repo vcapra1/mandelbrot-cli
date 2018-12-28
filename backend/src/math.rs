@@ -2,7 +2,7 @@ use std::ops::{Add, Sub, Mul, Div};
 
 pub type Real = f64;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Complex(pub Real, pub Real);
 
 impl Complex {

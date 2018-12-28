@@ -3,6 +3,8 @@ use std::path::Path;
 
 use crate::util::Config;
 use crate::render::*;
+use crate::image::*;
+use crate::colors::*;
 use crate::math::*;
 
 #[derive(Copy, Clone)]
@@ -18,18 +20,18 @@ enum Field {
 
 #[derive(Clone)]
 enum State {
-    Prompt(Render),
-    Set(Render, Field, String),
-    Get(Render, Field),
-    Render(Render),
-    Export(Render, String),
+    Prompt(Render, Parameters),
+    Set(Render, Parameters, Field, String),
+    Get(Render, Parameters, Field),
+    Render(Render, Parameters),
+    Export(Render, Parameters, String),
     Dead,
 }
 
 impl State {
     fn execute(self) -> State {
         match self {
-            State::Prompt(render) => {
+            State::Prompt(render, params) => {
                 // Print a prompt
                 print!("> ");
                 io::stdout().flush().unwrap();
@@ -53,12 +55,12 @@ impl State {
                     for (idx, field) in field_strs.iter().enumerate() {
                         if first_word == *field {
                             let n = field.len() + 1;
-                            return State::Set(render, fields[idx].clone(), (&input[n..]).to_string().trim().to_string());
+                            return State::Set(render, params, fields[idx].clone(), (&input[n..]).to_string().trim().to_string());
                         }
                     }
 
                     println!("{} is not a valid field.", input.split_whitespace().next().unwrap());
-                    State::Prompt(render)
+                    State::Prompt(render, params)
                 } else if input.starts_with("get ") {
                     let input = (&input[4..]).to_string().trim().to_string();
 
@@ -67,14 +69,14 @@ impl State {
 
                     for (idx, field) in field_strs.iter().enumerate() {
                         if input == *field {
-                            return State::Get(render, fields[idx].clone());
+                            return State::Get(render, params, fields[idx].clone());
                         }
                     }
 
                     println!("{} is not a valid field.", input.split_whitespace().next().unwrap());
-                    State::Prompt(render)
+                    State::Prompt(render, params)
                 } else if input == "render" {
-                    State::Render(render)
+                    State::Render(render, params)
                 } else if input.starts_with("export ") {
                     let path = Path::new(&input[7..]);
 
@@ -82,7 +84,7 @@ impl State {
                         if path.is_dir() {
                             // If it's a directory, this won't work
                             println!("\"{}\" is a directory.", path.display());
-                            State::Prompt(render)
+                            State::Prompt(render, params)
                         } else if path.is_file() {
                             print!("\"{}\" already exists.  Do you want to overwrite? [Y/n] ", path.display());
                             io::stdout().flush().unwrap();
@@ -92,11 +94,11 @@ impl State {
                             conf = conf.trim().to_string().to_lowercase();
 
                             if conf == "y" || conf == "yes" {
-                                State::Export(render, path.display().to_string())
+                                State::Export(render, params, path.display().to_string())
                             } else {
                                 // Don't do anything
                                 println!("No action taken.");
-                                State::Prompt(render)
+                                State::Prompt(render, params)
                             }
                         } else {
                             unreachable!()
@@ -110,39 +112,122 @@ impl State {
                             if parent.is_file() {
                                 // This won't work
                                 println!("Invalid path: \"{}\" is a file.", parent.display());
-                                State::Prompt(render)
+                                State::Prompt(render, params)
                             } else {
                                 // We're good
-                                State::Export(render, path.display().to_string())
+                                State::Export(render, params, path.display().to_string())
                             }
                         } else {
                             // The parent doesn't exist, this won't work
                             println!("No such directory: \"{}\".", parent.display());
-                            State::Prompt(render)
+                            State::Prompt(render, params)
                         }
                     }
                 } else if input == "help" {
-                    // TODO
-                    unimplemented!()
+                    // Print help information
+                    show_help();
+
+                    State::Prompt(render, params)
                 } else {
                     println!("{} is not a valid command.", input);
-                    State::Prompt(render)
+                    State::Prompt(render, params)
                 }
             },
-            State::Dead => State::Dead,
-            _ => State::Dead
+            State::Get(render, params, field) => {
+                // Get the specified field of the render
+                match field {
+                    Field::Iterations => println!("{}", params.max_iter),
+                    Field::Width => println!("{}", params.image_size.0),
+                    Field::Height => println!("{}", params.image_size.1),
+                    Field::CenterX => println!("{}", params.center.0),
+                    Field::CenterY => println!("{}", params.center.1),
+                    Field::Radius => println!("{}", params.radius),
+                    Field::Supersampling => println!("{}", params.supersampling)
+                };
+
+                State::Prompt(render, params)
+            },
+            State::Set(render, mut params, field, value) => {
+                // Set the specified field of the render
+                match field {
+                    Field::Iterations => {
+                        match value.parse::<u32>() {
+                            Ok(value) => params.max_iter = value,
+                            Err(_) => println!("Invalid value: {}", value)
+                        };
+                    },
+                    Field::Width => {
+                        match value.parse::<u32>() {
+                            Ok(value) => params.image_size.0 = value,
+                            Err(_) => println!("Invalid value: {}", value)
+                        };
+                    },
+                    Field::Height => {
+                        match value.parse::<u32>() {
+                            Ok(value) => params.image_size.1 = value,
+                            Err(_) => println!("Invalid value: {}", value)
+                        };
+                    },
+                    Field::CenterX => {
+                        match value.parse::<Real>() {
+                            Ok(value) => params.center.0 = value,
+                            Err(_) => println!("Invalid value: {}", value)
+                        };
+                    },
+                    Field::CenterY => {
+                        match value.parse::<Real>() {
+                            Ok(value) => params.center.1 = value,
+                            Err(_) => println!("Invalid value: {}", value)
+                        };
+                    },
+                    Field::Radius => {
+                        match value.parse::<Real>() {
+                            Ok(value) => params.radius = value,
+                            Err(_) => println!("Invalid value: {}", value)
+                        };
+                    },
+                    Field::Supersampling => {
+                        match value.parse::<u32>() {
+                            Ok(value) => params.supersampling = value,
+                            Err(_) => println!("Invalid value: {}", value)
+                        };
+                    }
+                };
+
+                State::Prompt(render, params)
+            },
+            State::Render(mut render, params) => {
+                // Recalculate render pixels if necessary
+                render.recalc(&params);
+
+                // Render
+                match render.run() {
+                    Ok(_) => println!("Success!"),
+                    Err(e) => println!("There was an error: {}", e)
+                };
+
+                // Return to prompt
+                State::Prompt(render, params)
+            },
+            State::Export(render, params, path) => {
+                // Create a new image
+                let image = Image::new(&render, ColorFunction::new(Box::new(cf_greyscale)));
+
+                // Export the image
+                image.export(path);
+
+                // Return to the prompt
+                State::Prompt(render, params)
+            },
+            State::Dead => State::Dead
         }
     }
 }
 
 pub fn begin(_config: Config) {
-    let render = Render::new(Parameters {
-        image_size: (1000, 1000),
-        supersampling: 1,
-        center: Complex(0.0, 0.0),
-        radius: 2.0
-    });
-    let mut state: State = State::Prompt(render);
+    let render = Render::default();
+    let params = render.params.clone();
+    let mut state: State = State::Prompt(render, params);
 
     // CLI Loop
     loop {
@@ -171,4 +256,10 @@ pub fn begin(_config: Config) {
     let image = Image::new(render, cf);
 
     image.export("/home/vinnie/Desktop/export.png");*/
+}
+
+fn show_help() {
+    // TODO
+    let help = String::from("You're on your own");
+    println!("{}", help);
 }
