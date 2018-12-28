@@ -7,6 +7,14 @@ pub enum Color {
 
 // TODO add converstion between RGB and HSV
 
-pub struct ColorFunction<F: Fn(u32, Complex) -> Color> {
-    _func: F,
+pub struct ColorFunction {
+    pub func: Box<dyn Fn(u32, u32, Complex) -> Color>,
+}
+
+impl ColorFunction {
+    pub fn new(func: Box<dyn Fn(u32, u32, Complex) -> Color>) -> ColorFunction {
+        ColorFunction {
+            func
+        }
+    }
 }

@@ -1,6 +1,8 @@
 use crate::util::Config;
 use crate::render::*;
+use crate::image::*;
 use crate::math::*;
+use crate::colors::*;
 
 pub fn begin(_config: Config) {
     // Create a render object
@@ -20,5 +22,10 @@ pub fn begin(_config: Config) {
     };
 
     // export the image
-    
+    let cf = ColorFunction::new(Box::new(|i: u32, m: u32, z: Complex| -> Color { 
+        Color::RGB(0.0, 0.0, 1.0)
+    }));
+    let image = Image::new(render, cf);
+
+    image.export("/home/vinnie/Desktop/export.png");
 }
