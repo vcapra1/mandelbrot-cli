@@ -1,13 +1,15 @@
 use crate::math::*;
 use crate::cuda::*;
+use crate::colors::*;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone)]
 pub struct Parameters {
     pub image_size: (u32, u32),
     pub supersampling: u32,
     pub center: Complex,
     pub radius: Real,
-    pub max_iter: u32
+    pub max_iter: u32,
+    pub colorfunction: ColorFunction,
 }
 
 #[derive(Clone)]
@@ -24,7 +26,8 @@ impl Render {
             supersampling: 1,
             center: Complex(0.0, 0.0),
             radius: 2.0,
-            max_iter: 500
+            max_iter: 500,
+            colorfunction: ColorFunction::greyscale()
         })
     }
 

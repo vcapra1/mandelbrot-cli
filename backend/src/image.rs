@@ -6,6 +6,7 @@ use crate::colors::*;
 pub struct Image {
     pub size: (u32, u32),
     pub pixels: Vec<Color>,
+    pub scale: u32
 }
 
 impl Image {
@@ -13,7 +14,7 @@ impl Image {
         let pixels: Vec<_> = render.pixels.iter().map(|(i, _, z, _)| {
             (*color_func.func)(*i, render.iterations, *z)
         }).collect();
-        Image { pixels, size: render.params.image_size }
+        Image { pixels, size: render.params.image_size, scale: render.params.supersampling }
     }
 
     pub fn export(&self, path: String) -> std::io::Result<()> { 
@@ -29,6 +30,12 @@ impl Image {
             }
         }
 
-        img.save(&path)
+        // resize image down by supersampling factor
+        let resized = image::DynamicImage::ImageRgb8(img).resize(
+            self.size.0 / self.scale,
+            self.size.1 / self.scale,
+            image::FilterType::Triangle);
+
+        resized.save(&path)
     }
 }

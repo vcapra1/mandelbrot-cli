@@ -16,6 +16,7 @@ enum Field {
     CenterY,
     Radius,
     Supersampling,
+    ColorFunc,
 }
 
 #[derive(Clone)]
@@ -40,17 +41,24 @@ impl State {
                 let reader = io::stdin();
                 let mut input = String::new();
                 reader.read_line(&mut input).unwrap();
+                if input == "" {
+                    println!("");
+                    return State::Dead;
+                }
+                
                 input = input.trim().to_string();
 
                 // Parse the input
-                if input == "quit" || input == "exit" {
+                if input == "" {
+                    State::Prompt(render, params)
+                } else if input == "quit" || input == "exit" {
                     State::Dead
                 } else if input.starts_with("set ") {
                     let input = (&input[4..]).to_string().trim().to_string();
                     let first_word = input.split_whitespace().next().unwrap().to_string();
 
-                    let field_strs = vec!["iterations", "width", "height", "center:x", "center:y", "radius", "supersampling"];
-                    let fields = vec![Field::Iterations, Field::Width, Field::Height, Field::CenterX, Field::CenterY, Field::Radius, Field::Supersampling];
+                    let field_strs = vec!["iterations", "width", "height", "center:x", "center:y", "radius", "supersampling", "colorfunc"];
+                    let fields = vec![Field::Iterations, Field::Width, Field::Height, Field::CenterX, Field::CenterY, Field::Radius, Field::Supersampling, Field::ColorFunc];
 
                     for (idx, field) in field_strs.iter().enumerate() {
                         if first_word == *field {
@@ -64,8 +72,8 @@ impl State {
                 } else if input.starts_with("get ") {
                     let input = (&input[4..]).to_string().trim().to_string();
 
-                    let field_strs = vec!["iterations", "width", "height", "center:x", "center:y", "radius", "supersampling"];
-                    let fields = vec![Field::Iterations, Field::Width, Field::Height, Field::CenterX, Field::CenterY, Field::Radius, Field::Supersampling];
+                    let field_strs = vec!["iterations", "width", "height", "center:x", "center:y", "radius", "supersampling", "colorfunc"];
+                    let fields = vec![Field::Iterations, Field::Width, Field::Height, Field::CenterX, Field::CenterY, Field::Radius, Field::Supersampling, Field::ColorFunc];
 
                     for (idx, field) in field_strs.iter().enumerate() {
                         if input == *field {
@@ -142,7 +150,8 @@ impl State {
                     Field::CenterX => println!("{}", params.center.0),
                     Field::CenterY => println!("{}", params.center.1),
                     Field::Radius => println!("{}", params.radius),
-                    Field::Supersampling => println!("{}", params.supersampling)
+                    Field::Supersampling => println!("{}", params.supersampling),
+                    Field::ColorFunc => println!("{}", params.colorfunction.info()),
                 };
 
                 State::Prompt(render, params)
@@ -191,6 +200,12 @@ impl State {
                             Ok(value) => params.supersampling = value,
                             Err(_) => println!("Invalid value: {}", value)
                         };
+                    },
+                    Field::ColorFunc => {
+                        match value.parse::<ColorFunction>() {
+                            Ok(value) => params.colorfunction = value,
+                            Err(e) => println!("Invalid value: {} ({})", value, e)
+                        }
                     }
                 };
 
@@ -211,10 +226,13 @@ impl State {
             },
             State::Export(render, params, path) => {
                 // Create a new image
-                let image = Image::new(&render, ColorFunction::new(Box::new(cf_greyscale)));
+                let image = Image::new(&render, params.colorfunction.clone());
 
                 // Export the image
-                image.export(path);
+                match image.export(path) {
+                    Ok(_) => println!("Success!"),
+                    Err(_) => println!("There was an error saving the image")
+                };
 
                 // Return to the prompt
                 State::Prompt(render, params)
