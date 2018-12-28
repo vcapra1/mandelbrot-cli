@@ -11,11 +11,14 @@ pub fn begin(_config: Config) {
         radius: 2.0
     });
 
-    match render.run(1000) {
+    match render.run(10000) {
         Ok(_) => {
             println!("All good!");
-            println!("i[0] = {}", render.pixels[0].0);
+            println!("i[500500] = {}", render.pixels[500500].0);
         },
         Err(s) => println!("Error: {}", s)
     };
+
+    // export the image
+    
 }
