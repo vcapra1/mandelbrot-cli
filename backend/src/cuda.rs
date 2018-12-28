@@ -58,7 +58,7 @@ pub fn compute(render: Render, iterations: u32) -> Result {
     // Progress counter
     let mut progress: u32 = 0;
 
-    let progress_ptr: u64 = (&mut progress as *mut u32) as u64;
+    //TODO let progress_ptr: u64 = (&mut progress as *mut u32) as u64;
 
     /* TODO TODO TODO let progress_thread = std::thread::spawn(move || {
         unsafe {
@@ -85,7 +85,7 @@ pub fn compute(render: Render, iterations: u32) -> Result {
     match result_code {
         0 => {
             // Stop the progress thread
-            progress = 100;
+            //TODO progress = 100;
             // TODO progress_thread.join();
 
             // Get pixels vec back
@@ -104,7 +104,7 @@ pub fn compute(render: Render, iterations: u32) -> Result {
         },
         c => {
             // Stop the progress thread
-            progress = 999;
+            //TODO progress = 999;
             // TODO progress_thread.join();
 
             Err(RenderError(format!("CUDA Error [{}].", c)))

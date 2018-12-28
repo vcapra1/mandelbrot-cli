@@ -18,3 +18,12 @@ impl ColorFunction {
         }
     }
 }
+
+pub fn cf_greyscale(i: u32, m: u32, _: Complex) -> Color {
+    if i == m {
+        Color::RGB(1.0, 1.0, 1.0)
+    } else {
+        let p = i as f32 / m as f32;
+        Color::RGB(p, p, p)
+    }
+}
