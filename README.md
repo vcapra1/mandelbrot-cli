@@ -49,8 +49,7 @@ O(n^2\*m), where n is the image dimension and m is the max number of iterations.
 high-precision floating-point computation.
 
 ## Front-end
-The front end for this program will be written in Java, as it is easy to write a GUI in Java that is cross-platform.  The Java program and the Rust program will
-communicate via Sockets on a high port.  It will feature a large image display of the current rendered image, allowing users to change parameters directly via
-numerical inputs, or drawing a box on the image to zoom into or out of.
+The front-end will be a webpage, served by a Rust-backed server. It will feature a large image display of the current rendered image, allowing users to change 
+parameters directly via numerical inputs, or drawing a box on the image to zoom into or out of.
 
 The program will also work purely from the command line, by simply running the Rust program and omitting the GUI flag.
