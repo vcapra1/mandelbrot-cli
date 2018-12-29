@@ -2,3 +2,4 @@
 
 cd ./backend
 CXX=/opt/cuda/bin cargo run
+
