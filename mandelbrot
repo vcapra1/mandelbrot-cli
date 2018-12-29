@@ -1,4 +1,4 @@
 #!/bin/bash
 
 cd ./backend
-cargo run
+CXX=/opt/cuda/bin cargo run

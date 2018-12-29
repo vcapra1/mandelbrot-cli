@@ -13,5 +13,6 @@ fn main() {
         cli::begin(config);
     }
 
+    // Once we've reached here, either the CLI or GUI has exited
     println!("Exiting...");
 }

@@ -55,10 +55,8 @@ impl Render {
             // Convert the (x, y) image coords to complex coords based on the window
             let complex = mapping(x, y);
 
-            let diverged = complex.abs() > 2.0;
-
             // Insert Pixel into vector
-            pixels.push((0, complex, Complex(0.0, 0.0), diverged));
+            pixels.push((0, complex, Complex(0.0, 0.0), false));
         }
 
         Render {

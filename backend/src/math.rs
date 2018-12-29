@@ -1,19 +1,29 @@
 use std::ops::{Add, Sub, Mul, Div};
 
+// Scalar floating-point type to be used across the program
 pub type Real = f64;
 
 #[derive(Clone, Copy, PartialEq)]
+// Complex floating-point type to be used across the program
 pub struct Complex(pub Real, pub Real);
 
 impl Complex {
-    pub fn get_mapping((w, h): (u32, u32), (center, radius): (Complex, Real)) -> Box<dyn Fn(u32, u32) -> Complex> {
+    // Given the window and image size, get a closure that can be used to convert an image
+    // coordinate to a complex coordinate.
+    pub fn get_mapping((w, h): (u32, u32), 
+                       (center, radius): (Complex, Real)) -> Box<dyn Fn(u32, u32) -> Complex> {
+        // Compute the scale and shift in each dimension
         let (scale, shift) = if w >= h {
             // Radius maps to height
-            (2.0 * radius / h as Real, Complex(center.0 - radius * w as Real / h as Real, center.1 + radius))
+            (2.0 * radius / h as Real, 
+             Complex(center.0 - radius * w as Real / h as Real, center.1 + radius))
         } else {
             // Radius maps to width
-            (2.0 * radius / w as Real, Complex(center.0 - radius, center.1 + radius * h as Real / w as Real))
+            (2.0 * radius / w as Real, 
+             Complex(center.0 - radius, center.1 + radius * h as Real / w as Real))
         };
+        
+        // Return the mapping as a boxed closure
         Box::new(move |x: u32, y: u32| {
             let x = x as Real * scale;
             let y = y as Real * -scale;
@@ -21,14 +31,21 @@ impl Complex {
         })
     }
 
+    // Compute the squared absolute value of the complex number, which is faster to compute than
+    // the actual absolute value because no square root is needed
     pub fn abs_squared(&self) -> Real {
         (self.0 * self.0 + self.1 * self.1)
     }
 
+    // Compute the absolute value of the complex number
     pub fn abs(&self) -> Real {
         self.abs_squared().sqrt()
     }
 }
+
+//////////////////////////////////////////////////
+///////// Operations for Complex Numbers /////////
+//////////////////////////////////////////////////
 
 impl Add for Complex {
     type Output = Complex;
