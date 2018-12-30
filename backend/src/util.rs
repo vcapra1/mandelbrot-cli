@@ -11,7 +11,7 @@ pub fn parse_args(args: Vec<String>) -> Config {
     // Application config according to the arguments
     let mut config = Config {
         gui: false,
-        port: Some(37228)
+        port: None
     };
 
     // What we're expecting for the next iteration (-1 if anything)
