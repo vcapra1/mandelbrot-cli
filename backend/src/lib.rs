@@ -10,4 +10,5 @@ pub mod render;
 pub mod colors;
 pub mod image;
 
+pub mod http;
 pub mod threadpool;

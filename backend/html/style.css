@@ -9,3 +9,48 @@ div#main_image > img {
 	max-width: 100%;
 	max-height: 100%;
 }
+
+div#controls {
+	width: 776px;
+
+	padding: 12px;
+
+	border: 1px solid black;
+}
+
+div#controls input {
+	width: 100px;
+}
+
+div#progress {
+	position: relative;
+	width: 800px;
+	height: 18px;
+
+	border-left: 1px solid black;
+	border-right: 1px solid black;
+}
+
+div#progress > div {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	width: 50%;
+
+	background-color: black;
+}
+
+div#progress > span {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+
+	display: inline-block;
+	text-align: center;
+	color: rgb(127, 127, 127);
+
+	font-size: 12px;
+}
