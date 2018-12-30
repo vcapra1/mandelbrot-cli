@@ -17,8 +17,10 @@ pub fn parse_args(args: Vec<String>) -> Config {
     // What we're expecting for the next iteration (-1 if anything)
     let mut expecting = -1;
 
+    println!("{:?}", args);
+
     // Parse command-line arguments
-    for arg in args.iter() {
+    for arg in args.iter().skip(1) {
         if expecting == -1 {
             // Not expecting anything in particular, so look for flags
             if arg == "-g" || arg == "--gui" {
@@ -27,6 +29,8 @@ pub fn parse_args(args: Vec<String>) -> Config {
             } else if arg == "-p" || arg == "--port" {
                 // Specifying the port
                 expecting = 1;
+            } else {
+                panic!(format!("Unknown option: {}", arg));
             }
         } else {
             match expecting {
@@ -37,6 +41,7 @@ pub fn parse_args(args: Vec<String>) -> Config {
                     let num = if let Ok(num) = arg.parse::<u32>() {
                         num
                     } else {
+                        println!("Arg: {}", arg);
                         panic!("Must specify port with --port (-p) flag.");
                     };
 
@@ -47,6 +52,9 @@ pub fn parse_args(args: Vec<String>) -> Config {
 
                     // Save specified port
                     config.port = Some(num as u16);
+
+                    // Nothing else to expect
+                    expecting = -1;
                 },
                 _ => unreachable!()
             }

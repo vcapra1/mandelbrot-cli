@@ -63,15 +63,32 @@ pub fn begin(config: Config) {
 
 // Handle the connection, return true to exit
 fn handle_connection(mut stream: TcpStream) -> bool {
-    // Read the request to buffer
-    let mut buffer = [0; 512];
-    stream.read(&mut buffer).unwrap();
+    let mut bytes = Vec::new();
+
+    loop {
+        // Read the request to buffer
+        let mut buffer = [0; 512];
+        stream.read(&mut buffer).unwrap();
+
+        bytes.extend_from_slice(&buffer);
+
+        if buffer[511] == 0 {
+            break
+        }
+    }
 
     // Separate the method and request path
-    let request = String::from_utf8_lossy(&buffer[..]);
+    let request = String::from_utf8_lossy(&bytes[..]);
+
+    println!("--{}--", request);
+
+    if bytes.len() == 0 || bytes[0] == 0 {
+        return false;
+    }
+
     let parts: Vec<_> = request.split_whitespace().take(2).collect();
 
-    assert!(parts.len() == 2);
+    assert!(parts.len() == 2, format!("Request: {} (len: {})", request, bytes.len()));
 
     let method = parts[0];
 
@@ -108,8 +125,10 @@ fn handle_connection(mut stream: TcpStream) -> bool {
         query_hashmap
     };
 
-    let mut contents = String::new();
+    let mut contents = String::new().into_bytes();
     let mut quit = false;
+
+    println!("Method: {}\nPath: {}\nQuery: {:?}", method, path, query);
 
     // Figure out what to do
     if path == "/" && method == "POST" && query.contains_key("action") {
@@ -118,24 +137,36 @@ fn handle_connection(mut stream: TcpStream) -> bool {
         if let Some(action) = action {
             // Do the given action
             if action == "quit" {
-                // TODO Send back the quit message
-                contents = "Successfully exited application".to_string();
+                // Send back the quit message
+                let html = fs::read_to_string("html/terminated.html").unwrap();
+
+                contents = format!("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\n\r\n{}", html.len(), html).into_bytes();
                 quit = true;
             }
         }
+    } else if path == "/style.css" && method == "GET" {
+        let css = fs::read_to_string("html/style.css").unwrap();
+
+        contents = format!("HTTP/1.1\r\n\r\n{}", css).into_bytes();
+    } else if path == "/sample.png" && method == "GET" {
+        let bytes = fs::read("html/sample.png").unwrap();
+        let len = bytes.len();
+
+        contents = format!("HTTP/1.1\r\nContent-Type:image/png\r\nContent-Length:{}\r\n\r\n", len).into_bytes();
+        contents.extend(bytes);
     }
 
     // If we've reached here, and contents is empty, just return the normal dashboard page
-    if contents == "" {
+    if contents == b"" {
         // Send dashboard
-        contents = fs::read_to_string("html/dashboard.html").unwrap();
+        let html = fs::read_to_string("html/dashboard.html").unwrap();
+
+        contents = format!("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\n\r\n{}", html.len(), html).into_bytes();
     }
 
-    let response = format!("HTTP/1.1 200 OK\r\n\r\n{}", contents);
-
     // Send the response
-    stream.write(response.as_bytes()).unwrap();
+    stream.write(&contents).unwrap();
     stream.flush().unwrap();
-    
+
     quit
 }

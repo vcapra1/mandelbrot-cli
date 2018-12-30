@@ -1,0 +1,11 @@
+div#main_image {
+	width: 800px;
+	height: 800px;
+
+	border: 1px solid black;
+}
+
+div#main_image > img {
+	max-width: 100%;
+	max-height: 100%;
+}
