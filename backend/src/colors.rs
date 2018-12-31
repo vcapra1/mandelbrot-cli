@@ -63,6 +63,31 @@ impl FromStr for ColorFunction {
 
                 Ok(ColorFunction::color(shift, scale))
             }
+        } else if s.starts_with("red(") && s.ends_with(")") {
+            // Color function, with two given parameters, shift and scale
+
+            // Remove "color(" and ")", leaving just the parameters
+            let end = s.len() - 1;
+            let param_str = &s[4..end].to_string();
+
+            // Isolate the parameters
+            let params: Vec<_> = param_str.split(",").collect();
+
+            if params.len() != 2 {
+                Err("Incorrect syntax: color has 2 parameters (shift and scale).".to_string())
+            } else {
+                // Parse the parameters into numerical values
+                let shift = match params[0].trim().parse::<u32>() {
+                    Ok(value) => value,
+                    Err(e) => return Err(format!("Couldn't parse shift {}: {:?}.", params[0], e))
+                };
+                let scale = match params[1].trim().parse::<f64>() {
+                    Ok(value) => value,
+                    Err(e) => return Err(format!("Couldn't parse scale {}: {:?}.", params[1], e))
+                };
+
+                Ok(ColorFunction::red(shift, scale))
+            }
         } else {
             Err("No such color function.".to_string())
         }
@@ -103,6 +128,25 @@ impl ColorFunction {
                 colors[idx as usize]
             }
         }), format!("color({}, {})", shift, scale))
+    }
+
+    pub fn red(shift: u32, scale: f64) -> ColorFunction {
+        // Read colors from file
+        let file = File::open("red.csv").unwrap();
+        let colors: Vec<_> = BufReader::new(file).lines().map(|line| {
+            let rgb: Vec<_> = line.unwrap().split(",").map(|s| s.parse::<u8>().unwrap() as f32 / 255.0).collect();
+            Color::RGB(rgb[0], rgb[1], rgb[2])
+        }).collect();
+        ColorFunction::new(Rc::new(move |i: u32, m: u32, z: Complex| -> Color {
+            if i == m {
+                Color::RGB(0.0, 0.0, 0.0)
+            } else {
+                let size = z.abs();
+                let smoothed = size.log(2.0).log(2.0);
+                let idx = ((i as f64 + 1.0 - smoothed) * scale + shift as f64) as i32 % 2048;
+                colors[idx as usize]
+            }
+        }), format!("red({}, {})", shift, scale))
     }
 
     pub fn greyscale() -> ColorFunction {

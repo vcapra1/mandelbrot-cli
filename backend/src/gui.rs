@@ -30,20 +30,14 @@ pub fn begin(config: Config) {
     // Create a new thread pool
     let pool = ThreadPool::new(10, tx_stop);
 
-    let mut i = 0;
     // Listen for incoming connections
     loop {
-        println!("Loop {}", i);
-        i += 1;
         let stream = listener.accept();
 
         // Check the stop receiver
         match rx_stop.try_recv() {
             Err(mpsc::TryRecvError::Empty) => (),
-            _ => {
-                println!("STOP NOW!!!");
-                break
-            }
+            _ => break
         };
 
         // Extract the stream
@@ -65,8 +59,6 @@ pub fn begin(config: Config) {
             }
         });
     }
-
-    println!("Breaked");
 }
 
 // Handle the connection, return true to exit
