@@ -1,16 +1,16 @@
 use std::{
+    sync::{mpsc, Arc, Mutex},
     thread,
-    sync::{mpsc, Arc, Mutex}
 };
 
 enum Message {
     NewJob(Job),
-    Terminate
+    Terminate,
 }
 
 pub struct ThreadPool {
     workers: Vec<Worker>,
-    job_sender: mpsc::Sender<Message>
+    job_sender: mpsc::Sender<Message>,
 }
 
 trait FnBox {
@@ -40,10 +40,16 @@ impl ThreadPool {
             workers.push(Worker::new(id, Arc::clone(&rx), stop_sender.clone()));
         }
 
-        ThreadPool { workers, job_sender: tx }
+        ThreadPool {
+            workers,
+            job_sender: tx,
+        }
     }
 
-    pub fn execute<F>(&self, f: F) where F: FnOnce(mpsc::Sender<()>) + Send + 'static {
+    pub fn execute<F>(&self, f: F)
+    where
+        F: FnOnce(mpsc::Sender<()>) + Send + 'static,
+    {
         let job = Box::new(f);
 
         self.job_sender.send(Message::NewJob(job)).unwrap();
@@ -57,7 +63,7 @@ impl Drop for ThreadPool {
             println!("Terminating...");
             self.job_sender.send(Message::Terminate).unwrap();
         }
-        
+
         // Wait for threads to shut down
         for worker in &mut self.workers {
             println!("Waiting...");
@@ -70,11 +76,15 @@ impl Drop for ThreadPool {
 
 struct Worker {
     _id: usize,
-    thread: Option<thread::JoinHandle<()>>
+    thread: Option<thread::JoinHandle<()>>,
 }
 
 impl Worker {
-    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>, stop_sender: mpsc::Sender<()>) -> Worker {
+    fn new(
+        id: usize,
+        receiver: Arc<Mutex<mpsc::Receiver<Message>>>,
+        stop_sender: mpsc::Sender<()>,
+    ) -> Worker {
         // Create the thread
         let thread = thread::spawn(move || {
             // Loop until terminate message is received
@@ -86,16 +96,19 @@ impl Worker {
                     Message::NewJob(job) => {
                         // Run the job
                         job.call_box(stop_sender.clone());
-                    },
+                    }
                     Message::Terminate => {
                         // Break out of the loop
-                        break
+                        break;
                     }
                 }
             }
         });
 
         // Return a worker with id and join handle to thread
-        Worker { _id: id, thread: Some(thread) }
+        Worker {
+            _id: id,
+            thread: Some(thread),
+        }
     }
 }

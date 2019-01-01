@@ -11,7 +11,7 @@ pub fn parse_args(args: Vec<String>) -> Config {
     // Application config according to the arguments
     let mut config = Config {
         gui: false,
-        port: None
+        port: None,
     };
 
     // What we're expecting for the next iteration (-1 if anything)
@@ -55,8 +55,8 @@ pub fn parse_args(args: Vec<String>) -> Config {
 
                     // Nothing else to expect
                     expecting = -1;
-                },
-                _ => unreachable!()
+                }
+                _ => unreachable!(),
             }
         }
     }
@@ -64,7 +64,7 @@ pub fn parse_args(args: Vec<String>) -> Config {
     // If expecting something, there's an error
     match expecting {
         1 => panic!("Must specify port with --port (-p) flag."),
-        _ => ()
+        _ => (),
     }
 
     // If there's no GUI, then the port is None

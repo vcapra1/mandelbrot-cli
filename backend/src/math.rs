@@ -1,4 +1,4 @@
-use std::ops::{Add, Sub, Mul, Div};
+use std::ops::{Add, Div, Mul, Sub};
 
 // Scalar floating-point type to be used across the program
 pub type Real = f64;
@@ -10,19 +10,25 @@ pub struct Complex(pub Real, pub Real);
 impl Complex {
     // Given the window and image size, get a closure that can be used to convert an image
     // coordinate to a complex coordinate.
-    pub fn get_mapping((w, h): (u32, u32), 
-                       (center, radius): (Complex, Real)) -> Box<dyn Fn(u32, u32) -> Complex> {
+    pub fn get_mapping(
+        (w, h): (u32, u32),
+        (center, radius): (Complex, Real),
+    ) -> Box<dyn Fn(u32, u32) -> Complex> {
         // Compute the scale and shift in each dimension
         let (scale, shift) = if w >= h {
             // Radius maps to height
-            (2.0 * radius / h as Real, 
-             Complex(center.0 - radius * w as Real / h as Real, center.1 + radius))
+            (
+                2.0 * radius / h as Real,
+                Complex(center.0 - radius * w as Real / h as Real, center.1 + radius),
+            )
         } else {
             // Radius maps to width
-            (2.0 * radius / w as Real, 
-             Complex(center.0 - radius, center.1 + radius * h as Real / w as Real))
+            (
+                2.0 * radius / w as Real,
+                Complex(center.0 - radius, center.1 + radius * h as Real / w as Real),
+            )
         };
-        
+
         // Return the mapping as a boxed closure
         Box::new(move |x: u32, y: u32| {
             let x = x as Real * scale;
@@ -67,7 +73,10 @@ impl Mul for Complex {
     type Output = Complex;
 
     fn mul(self, other: Complex) -> Complex {
-        Complex(self.0 * other.0 - self.1 * other.1, self.0 * other.1 + self.1 * other.0)
+        Complex(
+            self.0 * other.0 - self.1 * other.1,
+            self.0 * other.1 + self.1 * other.0,
+        )
     }
 }
 

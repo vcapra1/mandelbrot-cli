@@ -14,5 +14,5 @@ fn main() {
         .compile("libcompute.a");
 
     println!("cargo:rustc-link-search=native=/opt/cuda/lib64");
-	println!("cargo:rustc-link-lib=cudart");
+    println!("cargo:rustc-link-lib=cudart");
 }

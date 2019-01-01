@@ -1,7 +1,7 @@
 extern crate image;
 
-use crate::render::*;
 use crate::colors::*;
+use crate::render::*;
 
 // Image structure, created from a render, that stores the pixels as colors
 pub struct Image {
@@ -13,19 +13,25 @@ pub struct Image {
 impl Image {
     pub fn new(render: &Render, color_func: ColorFunction) -> Image {
         // Use the provided color functino to map each pixel from the render to a color
-        let pixels: Vec<_> = render.pixels.iter().map(|(i, _, z, _)| {
-            (*color_func.func)(*i, render.iterations, *z)
-        }).collect();
-        
-        Image { pixels, size: render.params.image_size, scale: render.params.supersampling }
+        let pixels: Vec<_> = render
+            .pixels
+            .iter()
+            .map(|(i, _, z, _)| (*color_func.func)(*i, render.iterations, *z))
+            .collect();
+
+        Image {
+            pixels,
+            size: render.params.image_size,
+            scale: render.params.supersampling,
+        }
     }
 
     // Export the image to specified file
-    pub fn export(&self, path: String) -> std::io::Result<()> { 
+    pub fn export(&self, path: String) -> std::io::Result<()> {
         // Create a new RGB image
         let mut img = image::RgbImage::new(self.size.0, self.size.1);
 
-        // Set the colors of each pixel according to the stored data 
+        // Set the colors of each pixel according to the stored data
         for (x, y, pixel) in img.enumerate_pixels_mut() {
             // Compute index
             let idx: usize = (x + y * self.size.0) as usize;
@@ -42,7 +48,8 @@ impl Image {
         let resized = image::DynamicImage::ImageRgb8(img).resize(
             self.size.0 / self.scale,
             self.size.1 / self.scale,
-            image::FilterType::Triangle);
+            image::FilterType::Triangle,
+        );
 
         // Save the image to filesystem
         resized.save(&path)

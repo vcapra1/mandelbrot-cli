@@ -1,9 +1,9 @@
 use std::collections::HashMap;
-use std::net::TcpStream;
+use std::fs;
 use std::io::prelude::*;
 use std::io::BufReader;
-use std::io::{Result, Error, ErrorKind};
-use std::fs;
+use std::io::{Error, ErrorKind, Result};
+use std::net::TcpStream;
 
 pub struct Target {
     pub path: String,
@@ -48,7 +48,10 @@ impl Request {
         };
 
         // Finalize the target
-        let target = Target { path: path.to_string(), query };
+        let target = Target {
+            path: path.to_string(),
+            query,
+        };
 
         // Get the headers
         let mut headers = HashMap::new();
@@ -102,7 +105,7 @@ impl Request {
             target,
             version: first_line[2].into(),
             headers,
-            body
+            body,
         })
     }
 
@@ -121,7 +124,7 @@ impl Request {
     pub fn header(&self, key: &str) -> Option<&str> {
         match self.headers.get(key) {
             Some(s) => Some(&s[..]),
-            None => None
+            None => None,
         }
     }
 
@@ -129,7 +132,12 @@ impl Request {
         self.body.clone()
     }
 
-    pub fn respond(&mut self, status: &str, headers: HashMap<&str, String>, body: Vec<u8>) -> Result<usize> {
+    pub fn respond(
+        &mut self,
+        status: &str,
+        headers: HashMap<&str, String>,
+        body: Vec<u8>,
+    ) -> Result<usize> {
         // Format the first line
         let mut response = format!("{} {}\r\n", self.version, status);
 
@@ -154,8 +162,13 @@ impl Request {
         Ok(content.len())
     }
 
-    pub fn respond_with_file<'a>(&mut self, status: &str, mut headers: HashMap<&str, String>, 
-                             filename: &str, filetype: &str) -> Result<usize> {
+    pub fn respond_with_file<'a>(
+        &mut self,
+        status: &str,
+        mut headers: HashMap<&str, String>,
+        filename: &str,
+        filetype: &str,
+    ) -> Result<usize> {
         let filename = format!("html/{}", filename);
         // Read in the file's bytes
         let bytes = fs::read(&filename[..])?;
@@ -170,13 +183,16 @@ impl Request {
 }
 
 pub fn parse_query(query: String) -> HashMap<String, Option<String>> {
-    query.split("&").map(|pair| {
-        let pair: Vec<_> = pair.splitn(2, "=").collect();
+    query
+        .split("&")
+        .map(|pair| {
+            let pair: Vec<_> = pair.splitn(2, "=").collect();
 
-        if pair.len() == 2 {
-            (pair[0].to_string(), Some(pair[1].to_string()))
-        } else {
-            (pair[0].to_string(), None)
-        }
-    }).collect()
+            if pair.len() == 2 {
+                (pair[0].to_string(), Some(pair[1].to_string()))
+            } else {
+                (pair[0].to_string(), None)
+            }
+        })
+        .collect()
 }

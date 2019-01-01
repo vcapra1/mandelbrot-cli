@@ -23,5 +23,5 @@ typedef struct {
 } RenderData;
 
 extern "C" {
-	uint32_t cuda_compute(uint32_t iterations, RenderData data, uint32_t *progress);
+	uint32_t cuda_compute(uint32_t iterations, RenderData data, void **progress);
 }
