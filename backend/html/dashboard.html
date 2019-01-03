@@ -4,8 +4,20 @@
 		<title>Mandelbrot Set Explorer</title>
 		<link rel="stylesheet" type="text/css" href="style.css">
 		<script>
+			function validate() {
+				var valid = true
+
+				// Make sure iterations is a valid integer
+				let iterations = parseInt(document.getElementsByName("iter")[0].value)
+				if isNaN(iterations) valid = false
+				document.getElementsByName("iter")[0].value = iterations
+
+				// TODO: check the rest
+			}
+
 			function render() {
 				// Send the render request
+
 
 				// Continuously request for updates
 
@@ -27,37 +39,38 @@
 				<table>
 					<tr>
 						<td> <label for="iter">Iterations</label> </td>
-						<td> <input name="iter" type="number" value="500"> </td>
+						<td> <input name="iter" type="number" value="500" min="0" onchange="validate()"> </td>
 						<td> <label for="center_x">Center X</label> </td>
-						<td> <input name="center_x" type="number" value="0.0"> </td>
+						<td> <input name="center_x" type="number" value="0.0" onchange="validate()"> </td>
 						<td> <label for="colors">Color Function</label> </td>
 						<td colspan="2"> 
-							<select name="colors">
+							<select name="colors" onchange="validate()">
 								<option value="greyscale">Greyscale</option>
 								<option value="rgreyscale">Reversed Greyscale</option>
 								<option value="color">Color</option>
+								<option value="color">Red</option>
 							</select>
 						</td>
 					</tr>
 					<tr>
 						<td> <label for="width">Image Width</label> </td>
-						<td> <input name="width" type="number" value="1000"> </td>
+						<td> <input name="width" type="number" value="1000" min="0" onchange="validate()"> </td>
 						<td> <label for="center_y">Center Y</label> </td>
-						<td> <input name="center_y" type="number" value="0.0"> </td>
+						<td> <input name="center_y" type="number" value="0.0" onchange="validate()"> </td>
 						<td> <label for="color_shift">Color Shift</label> </td>
-						<td> <input name="color_shift" type="number" value="0"> </td>
+						<td> <input name="color_shift" type="number" value="0" onchange="validate()"> </td>
 					</tr>
 					<tr>
 						<td> <label for="height">Image Height</label> </td>
-						<td> <input name="height" type="number" value="1000"> </td>
+						<td> <input name="height" type="number" value="1000" min="0" onchange="validate()"> </td>
 						<td> <label for="radius">Radius</label> </td>
-						<td> <input name="radius" type="number" value="2.0"> </td>
+						<td> <input name="radius" type="number" value="2.0" min="0" onchange="validate()"> </td>
 						<td> <label for="color_scale">Color Scale</label> </td>
-						<td> <input name="color_scale" type="number" value="32.0"> </td>
+						<td> <input name="color_scale" type="number" value="32.0" onchange="validate()"> </td>
 					</tr>
 					<tr>
 						<td> <label for="supersampling">Supersampling</label> </td>
-						<td> <input name="supersampling" type="number" value="1"> </td>
+						<td> <input name="supersampling" type="number" value="1" onchange="validate()"> </td>
 						<td colspan="3"></td>
 						<td> <input type="submit" name="action" value="Render" style="font-weight: bold;"> </td>
 						<td> <input type="submit" name="action" value="Quit"> </td>
