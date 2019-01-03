@@ -38,14 +38,14 @@ public class App extends Application {
         VBox root = new VBox(canvas, controlsPane);
 
         // Create and apply the scene
-        Scene scene = new Scene(root, 800, 900);
+        Scene scene = new Scene(root, 800, 950);
         primaryStage.setScene(scene);
-
-        // Disable resizing the stage
-        primaryStage.setResizable(false);
 
         // Show the window
         primaryStage.show();
+
+        // Disable resizing the stage
+        //primaryStage.setResizable(false);
     }
 
 }
