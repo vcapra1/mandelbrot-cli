@@ -115,7 +115,7 @@ pub fn compute(render: Render, show_progress: bool) -> Result {
             // Stop the progress thread
             let mut p = 18_446_744_073_709_551_615u64;
             progress = &mut p;
-            progress_thread.join();
+            progress_thread.join().unwrap();
 
             // Get pixels vec back
             let pixels_vec =
@@ -135,7 +135,7 @@ pub fn compute(render: Render, show_progress: bool) -> Result {
             // Stop the progress thread
             let mut p = 18_446_744_073_709_551_615u64;
             progress = &mut p;
-            progress_thread.join();
+            progress_thread.join().unwrap();
 
             Err(RenderError(format!("CUDA Error [{}].", c)))
         }

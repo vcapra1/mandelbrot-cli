@@ -31,6 +31,8 @@ impl Image {
         // Create a new RGB image
         let mut img = image::RgbImage::new(self.size.0, self.size.1);
 
+        println!("Encoding data...");
+
         // Set the colors of each pixel according to the stored data
         for (x, y, pixel) in img.enumerate_pixels_mut() {
             // Compute index
@@ -44,12 +46,18 @@ impl Image {
             }
         }
 
+        if self.scale != 1 {
+            println!("Scaling down...");
+        }
+
         // Resize image down by supersampling factor (linear filtering)
         let resized = image::DynamicImage::ImageRgb8(img).resize(
             self.size.0 / self.scale,
             self.size.1 / self.scale,
             image::FilterType::Triangle,
         );
+
+        println!("Exporting image...");
 
         // Save the image to filesystem
         resized.save(&path)

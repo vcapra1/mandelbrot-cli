@@ -329,7 +329,7 @@ impl State {
                 config.push_str(&format!("set radius {}\n", params.radius));
                 config.push_str(&format!("set supersampling {}\n", params.supersampling));
                 config.push_str(&format!(
-                    "set colorfunction {}\n",
+                    "set colorfunc {}\n",
                     params.colorfunction.info()
                 ));
 
@@ -399,6 +399,9 @@ fn show_help() {
     );
     help.push_str(
         "    color(shift, scale)  Colorized, with given shift (pos. int.) and scale (float)\n",
+    );
+    help.push_str(
+        "    red(shift, scale)    Red colorized, with given shift (pos. int.) and scale (float)\n",
     );
     println!("{}", help);
 }
