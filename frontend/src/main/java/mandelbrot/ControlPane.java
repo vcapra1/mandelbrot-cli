@@ -1,5 +1,8 @@
 package mandelbrot;
 
+import java.util.ArrayList;
+import java.util.Collections;
+
 import javafx.geometry.Insets;
 
 import javafx.scene.text.Font;
@@ -39,6 +42,8 @@ public class ControlPane extends GridPane {
     private Button mRenderButton;
     private ComboBox mColorFunctionComboBox;
     private ProgressBar mRenderProgressBar;
+
+    private ArrayList<TextField> mPossiblyInvalidTextFields = new ArrayList<>();
 
     private enum Field {
         Iterations, Width, Height, Supersampling, CenterX, CenterY, 
@@ -84,7 +89,7 @@ public class ControlPane extends GridPane {
         mColorFunctionComboBox = new ComboBox();
 
         // Create the progress bar
-        mRenderProgressBar = new ProgressBar();
+        mRenderProgressBar = new ProgressBar(0.0);
 
         // Add all the components to the GridView
         add(mIterationsLabel, 0, 0);
@@ -122,6 +127,8 @@ public class ControlPane extends GridPane {
         Region sep2 = new Region();
         sep2.setPrefWidth(36);
         add(sep2, 5, 0);
+
+        // TODO: Add options to selection dropdown for color function
     }
 
     private static Label makeLabel(String text) {
@@ -130,7 +137,7 @@ public class ControlPane extends GridPane {
         return label;
     }
 
-    private static TextField makeTextField(Field field, int defaultValue, int min, int max) {
+    private TextField makeTextField(Field field, int defaultValue, int min, int max) {
         TextField textField = new TextField();
         // Add change listener
         textField.textProperty().addListener((observed, oldText, newText) -> {
@@ -139,15 +146,34 @@ public class ControlPane extends GridPane {
                 newText = newText.replaceAll("[^-\\d]", "");
             }
 
-            // TODO: check range
-
             textField.setText(newText);
         });
+        
+        // Add focus listener
+        textField.focusedProperty().addListener((observed, oldValue, newValue) -> {
+            if (!newValue) {
+                // Make sure it contains a valid number
+                try {
+                    String text = textField.getText();
+                    int parsed = Integer.parseInt(text);
+
+                    if (parsed < min || parsed > max) {
+                        setInvalid(textField);
+                    } else {
+                        setValid(textField);
+                    }
+                } catch (Exception e) {
+                    setInvalid(textField);
+                }
+            }
+        });
+
+        textField.setText("" + defaultValue);
 
         return textField;
     }
 
-    private static TextField makeTextField(Field field, double defaultValue, double min, double max) {
+    private TextField makeTextField(Field field, double defaultValue, double min, double max) {
         TextField textField = new TextField();
         // Add change listener
         textField.textProperty().addListener((observed, oldText, newText) -> {
@@ -156,12 +182,61 @@ public class ControlPane extends GridPane {
                 newText = oldText;
             }
 
-            // TODO: check range
-
             textField.setText(newText);
         });
 
+        // Add focus listener
+        textField.focusedProperty().addListener((observed, oldValue, newValue) -> {
+            if (!newValue) {
+                // Make sure it contains a valid number
+                try {
+                    String text = textField.getText();
+                    double parsed = Double.parseDouble(text);
+
+                    if (parsed < min || parsed > max) {
+                        setInvalid(textField);
+                    } else {
+                        setValid(textField);
+                    }
+                } catch (Exception e) {
+                    setInvalid(textField);
+                }
+            }
+        });
+
+        textField.setText("" + defaultValue);
+
         return textField;
+    }
+
+    private void setInvalid(TextField textField) {
+        textField.setStyle("-fx-text-box-border: red; -fx-focus-color: red;");
+        if (!textField.getStyleClass().contains("invalid")) {
+            textField.getStyleClass().add("invalid");
+        }
+        if (!this.mPossiblyInvalidTextFields.contains(textField)) {
+            this.mPossiblyInvalidTextFields.add(textField);
+        }
+        updateButton();
+    }
+
+    private void setValid(TextField textField) {
+        textField.setStyle("");
+        textField.getStyleClass().removeAll(Collections.singleton("invalid"));
+        updateButton();
+    }
+
+    private void updateButton() {
+        boolean flag = true;
+
+        for (TextField textField : this.mPossiblyInvalidTextFields) {
+            if (textField.getStyleClass().contains("invalid")) {
+                flag = false;
+                break;
+            }
+        }
+
+        this.mRenderButton.setDisable(!flag);
     }
 
     private static void setFont(javafx.scene.control.Labeled component) {
