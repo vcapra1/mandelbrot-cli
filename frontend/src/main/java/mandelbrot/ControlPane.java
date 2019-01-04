@@ -40,6 +40,11 @@ public class ControlPane extends GridPane {
     private ComboBox mColorFunctionComboBox;
     private ProgressBar mRenderProgressBar;
 
+    private enum Field {
+        Iterations, Width, Height, Supersampling, CenterX, CenterY, 
+        Radius, ColorShift, ColorScale, ColorFunction
+    }
+
     public ControlPane() {
         // Set the gap between each cell
         setVgap(3);
@@ -61,15 +66,15 @@ public class ControlPane extends GridPane {
         mColorFunctionLabel = makeLabel("Color Function");
 
         // Create the text fields
-        mIterationsTextField = makeTextField();
-        mImageWidthTextField = makeTextField();
-        mImageHeightTextField = makeTextField();
-        mSupersamplingTextField = makeTextField();
-        mCenterXTextField = makeTextField();
-        mCenterYTextField = makeTextField();
-        mRadiusTextField = makeTextField();
-        mColorShiftTextField = makeTextField();
-        mColorScaleTextField = makeTextField();
+        mIterationsTextField = makeTextField(Field.Iterations, 500, 0, Integer.MAX_VALUE);
+        mImageWidthTextField = makeTextField(Field.Width, 1000, 0, Integer.MAX_VALUE);
+        mImageHeightTextField = makeTextField(Field.Height, 1000, 0, Integer.MAX_VALUE);
+        mSupersamplingTextField = makeTextField(Field.Supersampling, 1, 1, 8);
+        mCenterXTextField = makeTextField(Field.CenterX, 0.0, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+        mCenterYTextField = makeTextField(Field.CenterY, 0.0, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+        mRadiusTextField = makeTextField(Field.Radius, 2.0, 0.0, Double.POSITIVE_INFINITY);
+        mColorShiftTextField = makeTextField(Field.ColorShift, 0, 0, 2047);
+        mColorScaleTextField = makeTextField(Field.ColorScale, 32.0, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
         
         // Create the "Render" button
         mRenderButton = new Button("Render");
@@ -125,8 +130,37 @@ public class ControlPane extends GridPane {
         return label;
     }
 
-    private static TextField makeTextField() {
+    private static TextField makeTextField(Field field, int defaultValue, int min, int max) {
         TextField textField = new TextField();
+        // Add change listener
+        textField.textProperty().addListener((observed, oldText, newText) -> {
+            // Remove non-numeric characters
+            if (!newText.matches("-?\\d*")) {
+                newText = newText.replaceAll("[^-\\d]", "");
+            }
+
+            // TODO: check range
+
+            textField.setText(newText);
+        });
+
+        return textField;
+    }
+
+    private static TextField makeTextField(Field field, double defaultValue, double min, double max) {
+        TextField textField = new TextField();
+        // Add change listener
+        textField.textProperty().addListener((observed, oldText, newText) -> {
+            // Don't let invalid characters be entered
+            if (!newText.matches("-?(\\d*)?(\\.(\\d*))?")) {
+                newText = oldText;
+            }
+
+            // TODO: check range
+
+            textField.setText(newText);
+        });
+
         return textField;
     }
 
