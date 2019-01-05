@@ -89,7 +89,7 @@ impl FromStr for ColorFunction {
                 Ok(ColorFunction::red(shift, scale))
             }
         } else {
-            Err("No such color function.".to_string())
+            Err(format!("No such color function: {}.", s))
         }
     }
 }

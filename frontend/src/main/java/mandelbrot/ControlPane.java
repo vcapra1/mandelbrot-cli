@@ -45,12 +45,16 @@ public class ControlPane extends GridPane {
 
     private ArrayList<TextField> mPossiblyInvalidTextFields = new ArrayList<>();
 
+    private SocketComm mSocketComm;
+
     private enum Field {
         Iterations, Width, Height, Supersampling, CenterX, CenterY, 
         Radius, ColorShift, ColorScale, ColorFunction
     }
 
-    public ControlPane() {
+    public ControlPane(SocketComm socketComm) {
+        mSocketComm = socketComm;
+
         // Set the gap between each cell
         setVgap(3);
         setHgap(3);
@@ -142,13 +146,15 @@ public class ControlPane extends GridPane {
         mRenderButton.setOnAction((event) -> {
             new Thread() {
                 public void run() {
+                    // Disable the UI
                     ControlPane.this.setEnabled(false);
-                    for (int p = 0; p <= 100; p++) {
-                        ControlPane.this.mRenderProgressBar.setProgress((float) p / 100.0);
-                        try {
-                            Thread.sleep(10);
-                        } catch (InterruptedException e) {}
-                    }
+
+                    // Send the render message
+                    boolean result = renderRequest();
+
+                    // TODO: Track the progress
+
+                    // Enable the UI
                     ControlPane.this.setEnabled(true);
                 }
             }.start();
@@ -324,6 +330,58 @@ public class ControlPane extends GridPane {
                 mColorScaleTextField.getStyleClass().removeAll(Collections.singleton("invalid"));
                 mColorScaleTextField.getStyleClass().add("invalid_disabled");
             }
+        }
+    }
+
+    private boolean renderRequest() {
+        String request = "render ";
+
+        request += mIterationsTextField.getText() + " "
+            + mImageWidthTextField.getText() + " "
+            + mImageHeightTextField.getText() + " "
+            + mSupersamplingTextField.getText() + " "
+            + mCenterXTextField.getText() + " "
+            + mCenterYTextField.getText() + " "
+            + mRadiusTextField.getText() + " ";
+
+        request += formatColorFunction();
+
+        String response = "";
+
+        try {
+            response = mSocketComm.sendAndReceive(request);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        if (response.equals("ok")) {
+            return true;
+        } else {
+            System.err.println(response);
+            return false;
+        }
+    }
+
+    private String formatColorFunction() {
+        String selected = (String) mColorFunctionComboBox.getValue();
+
+        if (selected.equals("Greyscale")) {
+            return "greyscale";
+        } else if (selected.equals("Reversed Greyscale")) {
+            return "rgreyscale";
+        } else if (selected.equals("Colorized")) {
+            String shift = mColorShiftTextField.getText();
+            String scale = mColorScaleTextField.getText();
+            return "color(" + shift + "," + scale + ")";
+        } else if (selected.equals("Red")) {
+            String shift = mColorShiftTextField.getText();
+            String scale = mColorScaleTextField.getText();
+            return "red(" + shift + "," + scale + ")";
+        } else {
+            // What??
+            mColorFunctionComboBox.setValue("Greyscale");
+            return formatColorFunction();
         }
     }
 

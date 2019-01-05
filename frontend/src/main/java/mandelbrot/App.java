@@ -15,29 +15,33 @@ public class App extends Application {
     // will interact with to select a window to zoom.
     private Canvas mRenderCanvas;
     private GraphicsContext mRenderGC;
+    private SocketComm mSocketComm;
+
+    private static String[] sArgs;
 
     public static void main(String[] args) {
-        try {
-            // Connect to the backend
-            SocketComm socketComm = new SocketComm(Integer.parseInt(args[0]));
+        sArgs = args;
 
-            // Launch the application
-            launch(args);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        // Launch the application
+        launch(args);
     }
 
     @Override
     public void start(Stage primaryStage) {
+        try {
+            // Connect to the backend
+            mSocketComm = new SocketComm(Integer.parseInt(sArgs[0]));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+
         // Create the canvas
         Canvas canvas = new Canvas(800, 800);
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
-        // TODO: create the controls
-
         // Create the controls layout
-        ControlPane controlsPane = new ControlPane();
+        ControlPane controlsPane = new ControlPane(mSocketComm);
 
         // Create the root layout
         VBox root = new VBox(canvas, controlsPane);
