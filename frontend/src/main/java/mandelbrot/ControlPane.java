@@ -150,9 +150,30 @@ public class ControlPane extends GridPane {
                     ControlPane.this.setEnabled(false);
 
                     // Send the render message
-                    boolean result = renderRequest();
+                    final boolean result = renderRequest();
 
-                    // TODO: Track the progress
+                    // Track the progress
+                    while (result) {
+                        int progress = progressRequest();
+
+                        // Check for error
+                        if (progress == -1) {
+                            // No operation pending
+                            mRenderProgressBar.setProgress(0F);
+                            break;
+                        } else {
+                            // Update progressbar
+                            mRenderProgressBar.setProgress(progress / 100.0);
+                        }
+                    }
+
+                    // Request the rendered data file path
+                    String output = outputRequest();
+
+                    // Show the image
+                    if (!output.isEmpty()) {
+                        // TODO: show image
+                    }
 
                     // Enable the UI
                     ControlPane.this.setEnabled(true);
@@ -359,7 +380,45 @@ public class ControlPane extends GridPane {
             return true;
         } else {
             System.err.println(response);
+            // TODO: show the error message
             return false;
+        }
+    }
+
+    private int progressRequest() {
+        String request = "progress";
+        String response = "";
+
+        try {
+            response = mSocketComm.sendAndReceive(request);
+
+            if (response.trim().equals("error(4)")) {
+                // There's no operation happening right now
+                return -1;
+            }
+
+            return Integer.parseInt(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+    private String outputRequest() {
+        String request = "output";
+        String response = "";
+
+        try {
+            response = mSocketComm.sendAndReceive(request);
+        
+            if (response.trim().equals("error(5)")) {
+                return "";
+            }
+
+            return response;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
         }
     }
 

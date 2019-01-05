@@ -57,4 +57,12 @@ public class App extends Application {
         //primaryStage.setResizable(false);
     }
 
+    @Override
+    public void stop() {
+        try {
+            // Close the socket and exit smoothly
+            mSocketComm.close();
+        } catch (Exception e) {}
+    }
+
 }

@@ -97,4 +97,11 @@ impl Render {
             Err(RenderError(message)) => Err(message),
         }
     }
+
+    // Render, but in a new thread
+    pub fn run_thread(&mut self) -> std::thread::JoinHandle<()> {
+        std::thread::spawn(|| {
+            // TODO: implement rendering here
+        })
+    }
 }

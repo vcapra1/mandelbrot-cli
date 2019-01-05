@@ -28,4 +28,14 @@ public class SocketComm {
         return mReader.readLine();
     }
 
+    public void close() throws IOException {
+        // Send stop signal
+        sendAndReceive("exit");
+
+        // Close the connections
+        mWriter.close();
+        mReader.close();
+        mClientSocket.close();
+    }
+
 }

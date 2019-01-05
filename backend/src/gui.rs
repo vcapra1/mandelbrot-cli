@@ -1,10 +1,16 @@
 use crate::util::Config;
 
+use crate::render::*;
+
 use crate::math::*;
 use crate::colors::*;
 
 use std::io::prelude::*;
 use std::net::{TcpStream, TcpListener};
+
+enum Operation {
+    Render(std::thread::JoinHandle<()>)
+}
 
 pub fn begin(config: Config) {
     // Build the address
@@ -31,6 +37,11 @@ pub fn begin(config: Config) {
 }
 
 fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
+    // Create the Render object
+    let mut render = Render::default();
+
+    let mut current_operation: Option<Operation> = None;
+
     // Send a message on the stream to indicate that the backend is ready
     stream.write("ready\n".as_bytes())?;
 
@@ -47,6 +58,12 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
         println!("Received: {}", line);
 
         if line.starts_with("render") {
+            // Make sure there isn't already an operatin in progress
+            if let Some(_) = current_operation {
+                stream.write("error(5)\n".as_bytes())?;
+                continue
+            }
+
             // render [iterations] [width] [height] [supersampling] [centerx] [centery] [radius] \
             //   [colorfunc]
             let parts: Vec<_> = line.split(" ").collect();
@@ -150,12 +167,53 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
             println!("Radius:         {}", radius);
             println!("Color function: {}", colorfunc.info());
 
+            // Apply the given values to the render params
+            let new_params = Parameters {
+                image_size: (width, height),
+                supersampling,
+                center: Complex(centerx, centery),
+                radius,
+                max_iter: iterations,
+                colorfunction: colorfunc,
+            };
+
+            // Update the render data
+            render.recalc(&new_params);
+
             // Tell the front end that the request was valid, and we'll begin rendering
             stream.write("ok\n".as_bytes())?;
 
-            // TODO: begin rendering (in a thread)
+            // TODO: create a Mutex or something to get the progress
+
+            // Begin rendering, and set the current operation
+            current_operation = Some(Operation::Render(render.run_thread()));
+        } else if line == "progress" {
+            if let Some(ref operation) = current_operation {
+                // There is a render operation in progress, get the progress
+                let prog = format!("{}\n", operation.get_progress());
+                stream.write((&prog[..]).as_bytes())?;
+            } else {
+                // No current operation
+                stream.write("error(4)\n".as_bytes())?;
+            }
+        } else if line == "output" {
+            // TODO: return /tmp file location of exported image
+            stream.write("error(0)\n".as_bytes())?;
+        } else if line == "exit" {
+            stream.write("ok\n".as_bytes())?;
+            break;
+        } else {
+            stream.write("error(0)\n".as_bytes())?;
         }
 
         // TODO: accept requests for progress, exporting, (maybe even canceling a render?)
+    }
+
+    Ok(())
+}
+
+impl Operation {
+    fn get_progress(&self) -> u32 {
+        0
     }
 }
