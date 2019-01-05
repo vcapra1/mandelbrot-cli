@@ -128,7 +128,31 @@ public class ControlPane extends GridPane {
         sep2.setPrefWidth(36);
         add(sep2, 5, 0);
 
-        // TODO: Add options to selection dropdown for color function
+        // Add options to selection dropdown for color function
+        mColorFunctionComboBox.getItems().addAll(
+            "Greyscale", "Reversed greyscale", "Colorized", "Red");
+        mColorFunctionComboBox.setValue("Colorized");
+
+        mColorFunctionComboBox.valueProperty().addListener((observed, oldValue, newValue) -> {
+            ControlPane.this.updateColorInputs((String) newValue);
+            updateButton();
+        });
+
+        // Set Button action
+        mRenderButton.setOnAction((event) -> {
+            new Thread() {
+                public void run() {
+                    ControlPane.this.setEnabled(false);
+                    for (int p = 0; p <= 100; p++) {
+                        ControlPane.this.mRenderProgressBar.setProgress((float) p / 100.0);
+                        try {
+                            Thread.sleep(10);
+                        } catch (InterruptedException e) {}
+                    }
+                    ControlPane.this.setEnabled(true);
+                }
+            }.start();
+        });
     }
 
     private static Label makeLabel(String text) {
@@ -237,6 +261,70 @@ public class ControlPane extends GridPane {
         }
 
         this.mRenderButton.setDisable(!flag);
+    }
+
+    public void setEnabled(boolean enabled) {
+        if (!enabled) {
+            // Disable everything
+            mIterationsTextField.setDisable(true);
+            mImageWidthTextField.setDisable(true);
+            mImageHeightTextField.setDisable(true);
+            mSupersamplingTextField.setDisable(true);
+            mCenterXTextField.setDisable(true);
+            mCenterYTextField.setDisable(true);
+            mRadiusTextField.setDisable(true);
+            mColorShiftTextField.setDisable(true);
+            mColorScaleTextField.setDisable(true);
+            mColorFunctionComboBox.setDisable(true);
+            mRenderButton.setDisable(true);
+        } else {
+            // Enable everything except color text fields and render button
+            mIterationsTextField.setDisable(false);
+            mImageWidthTextField.setDisable(false);
+            mImageHeightTextField.setDisable(false);
+            mSupersamplingTextField.setDisable(false);
+            mCenterXTextField.setDisable(false);
+            mCenterYTextField.setDisable(false);
+            mRadiusTextField.setDisable(false);
+            mColorFunctionComboBox.setDisable(false);
+
+            String colorFunc = (String) mColorFunctionComboBox.getValue();
+            // Check colorfunction to see if we should enable color text fields
+            updateColorInputs(colorFunc);
+            updateButton();
+        }
+    }
+
+    private void updateColorInputs(String colorFunc) {
+        if (colorFunc.equals("Colorized") || colorFunc.equals("Red")) {
+            // Enable text fields
+            mColorShiftTextField.setDisable(false);
+            mColorScaleTextField.setDisable(false);
+
+            // Change "invalid_disabled" class to "invalid"
+            if (mColorShiftTextField.getStyleClass().contains("invalid_disabled")) {
+                mColorShiftTextField.getStyleClass().removeAll(Collections.singleton("invalid_disabled"));
+                mColorShiftTextField.getStyleClass().add("invalid");
+            }
+            if (mColorScaleTextField.getStyleClass().contains("invalid_disabled")) {
+                mColorScaleTextField.getStyleClass().removeAll(Collections.singleton("invalid_disabled"));
+                mColorScaleTextField.getStyleClass().add("invalid");
+            }
+        } else {
+            // Disable text fields
+            mColorShiftTextField.setDisable(true);
+            mColorScaleTextField.setDisable(true);
+
+            // Change "invalid" class to "invalid_disabled"
+            if (mColorShiftTextField.getStyleClass().contains("invalid")) {
+                mColorShiftTextField.getStyleClass().removeAll(Collections.singleton("invalid"));
+                mColorShiftTextField.getStyleClass().add("invalid_disabled");
+            }
+            if (mColorScaleTextField.getStyleClass().contains("invalid")) {
+                mColorScaleTextField.getStyleClass().removeAll(Collections.singleton("invalid"));
+                mColorScaleTextField.getStyleClass().add("invalid_disabled");
+            }
+        }
     }
 
     private static void setFont(javafx.scene.control.Labeled component) {
