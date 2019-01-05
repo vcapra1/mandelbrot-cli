@@ -17,10 +17,15 @@ public class App extends Application {
     private GraphicsContext mRenderGC;
 
     public static void main(String[] args) {
-        // TODO: Connect to the backend
+        try {
+            // Connect to the backend
+            SocketComm socketComm = new SocketComm(Integer.parseInt(args[0]));
 
-        // Launch the application
-        launch(args);
+            // Launch the application
+            launch(args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

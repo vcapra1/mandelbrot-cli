@@ -3,8 +3,11 @@ use crate::util::Config;
 use std::process::Command;
 use std::net::UdpSocket;
 
+use std::io::prelude::*;
+use std::net::TcpListener;
+
 pub fn begin(mut config: Config) {
-    // Start the GUI
+/*    // Start the GUI
     let gui_proc = if cfg!(target_os = "windows") {
         Command::new("cmd")
             .args(&["/C", "../frontend/gradlew run"])
@@ -16,7 +19,7 @@ pub fn begin(mut config: Config) {
             .arg("../frontend/gradlew run")
             .output()
             .expect("failed to execute process");
-    };
+    };*/
 
     // Build the address
     let address = if let Some(port) = config.port {
@@ -27,11 +30,19 @@ pub fn begin(mut config: Config) {
         String::from("127.0.0.1:0")
     };
 
+    println!("Binding to address {}", address);
+
     // Connect via a socket on the given port
-    let mut socket = UdpSocket::bind(address).unwrap();
+    // let mut socket = UdpSocket::bind(address).unwrap();
+    let mut listener = TcpListener::bind(address).unwrap();
 
     // Send 
-    loop {}
+    for stream in listener.incoming() {
+        match stream {
+            Ok(stream) => println!("connection!"),
+            Err(_) => println!("err")
+        }
+    }
 
     // TODO: begin comm loop
 }
