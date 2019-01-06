@@ -146,6 +146,9 @@ public class ControlPane extends GridPane {
         mRenderButton.setOnAction((event) -> {
             new Thread() {
                 public void run() {
+                    // Set zero progress
+                    mRenderProgressBar.setProgress(0F);
+
                     // Disable the UI
                     ControlPane.this.setEnabled(false);
 
@@ -154,12 +157,16 @@ public class ControlPane extends GridPane {
 
                     // Track the progress
                     while (result) {
-                        int progress = progressRequest();
+                        double progress = progressRequest();
 
-                        // Check for error
-                        if (progress == -1) {
+                        // Check for error or done
+                        if (progress < 0.0) {
                             // No operation pending
                             mRenderProgressBar.setProgress(0F);
+                            break;
+                        } else if (progress > 100.0) {
+                            // Done
+                            mRenderProgressBar.setProgress(1F);
                             break;
                         } else {
                             // Update progressbar
@@ -385,7 +392,7 @@ public class ControlPane extends GridPane {
         }
     }
 
-    private int progressRequest() {
+    private double progressRequest() {
         String request = "progress";
         String response = "";
 
@@ -394,13 +401,13 @@ public class ControlPane extends GridPane {
 
             if (response.trim().equals("error(4)")) {
                 // There's no operation happening right now
-                return -1;
+                return -1.0;
             }
 
-            return Integer.parseInt(response);
+            return Double.parseDouble(response);
         } catch (Exception e) {
             e.printStackTrace();
-            return -1;
+            return -1.0;
         }
     }
 

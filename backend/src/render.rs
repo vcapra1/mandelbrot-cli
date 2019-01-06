@@ -139,9 +139,15 @@ impl RenderJob {
         self.thread.join().unwrap()
     }
 
+    /// Wait for the thread to finish.  This method blocks, and returns the render or error message
+    /// when the thread is finished.
+    pub fn join(mut self) -> std::result::Result<Render, String> {
+        self.thread.join().unwrap()
+    }
+
     /// Get the progress of the job at the current time.  This method may block very briefly if the
     /// progress mutex is locked.  Prints None if the job is complete
-    pub fn progress(&mut self) -> Option<f64> {
+    pub fn progress(&self) -> Option<f64> {
         *self.progress.lock().unwrap()
     }
 }

@@ -8,10 +8,6 @@ use crate::colors::*;
 use std::io::prelude::*;
 use std::net::{TcpStream, TcpListener};
 
-enum Operation {
-    Render(std::thread::JoinHandle<()>)
-}
-
 pub fn begin(config: Config) {
     // Build the address
     let address = if let Some(port) = config.port {
@@ -40,7 +36,7 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
     // Create the Render object
     let mut render = Render::default();
 
-    let mut current_operation: Option<Operation> = None;
+    let mut current_operation: Option<RenderJob> = None;
 
     // Send a message on the stream to indicate that the backend is ready
     stream.write("ready\n".as_bytes())?;
@@ -59,9 +55,15 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
 
         if line.starts_with("render") {
             // Make sure there isn't already an operatin in progress
-            if let Some(_) = current_operation {
-                stream.write("error(5)\n".as_bytes())?;
-                continue
+            if let Some(ref mut operation) = current_operation {
+                // See if the operation is done
+                if let None = operation.progress() {
+                    // It's done
+                    current_operation = None;
+                } else {
+                    stream.write("error(5)\n".as_bytes())?;
+                    continue
+                }
             }
 
             // render [iterations] [width] [height] [supersampling] [centerx] [centery] [radius] \
@@ -174,7 +176,6 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                 center: Complex(centerx, centery),
                 radius,
                 max_iter: iterations,
-                colorfunction: colorfunc,
             };
 
             // Update the render data
@@ -183,21 +184,47 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
             // Tell the front end that the request was valid, and we'll begin rendering
             stream.write("ok\n".as_bytes())?;
 
-            // TODO: create a Mutex or something to get the progress
-
             // Begin rendering, and set the current operation
-            current_operation = Some(Operation::Render(render.run_thread()));
+            current_operation = Some(render.clone().run());
         } else if line == "progress" {
             if let Some(ref operation) = current_operation {
-                // There is a render operation in progress, get the progress
-                let prog = format!("{}\n", operation.get_progress());
-                stream.write((&prog[..]).as_bytes())?;
+                // Get the progress
+                let progress = format!("{}\n", operation.progress().unwrap_or(101.0));
+
+                // Write it back
+                stream.write((&progress[..]).as_bytes())?;
             } else {
                 // No current operation
                 stream.write("error(4)\n".as_bytes())?;
             }
         } else if line == "output" {
-            // TODO: return /tmp file location of exported image
+            // Make sure an opearation exists
+            if let Some(ref mut operation) = current_operation {
+                // Make sure the operation is complete
+                if let Some(_) = operation.progress() {
+                    // Operation is still in progress
+                    stream.write("error(6.2)\n".as_bytes())?;
+                } else {
+                    // We good, fetch the result
+                    match current_operation.take().unwrap().join() {
+                        Ok(new_render) => {
+                            // Save the render
+                            render = new_render;
+
+                            // 
+                        }
+                        Err(e) => {
+                            stream.write("error(6.3)\n".as_bytes())?;
+                        }
+                    }
+                }
+
+            } else {
+                // No operation
+                stream.write("error(6.1)\n".as_bytes())?;
+            }
+            // Return /tmp file location of exported image
+
             stream.write("error(0)\n".as_bytes())?;
         } else if line == "exit" {
             stream.write("ok\n".as_bytes())?;
@@ -210,10 +237,4 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
     }
 
     Ok(())
-}
-
-impl Operation {
-    fn get_progress(&self) -> u32 {
-        0
-    }
 }
