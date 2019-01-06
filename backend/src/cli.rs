@@ -6,7 +6,7 @@ use crate::colors::*;
 use crate::image::*;
 use crate::math::*;
 use crate::render::*;
-use crate::util::Config;
+use crate::util::{self, *};
 
 #[derive(Copy, Clone)]
 enum Field {
@@ -21,20 +21,44 @@ enum Field {
 }
 
 #[derive(Clone)]
+struct Data {
+    render: Render,
+    params: Parameters,
+    colorfunc: ColorFunction,
+}
+
+#[derive(Clone)]
 enum State {
-    Prompt(Render, Parameters),
-    Set(Render, Parameters, Field, String),
-    Get(Render, Parameters, Field),
-    Render(Render, Parameters),
-    Export(Render, Parameters, String),
-    SaveConfig(Render, Parameters, String), // TODO: add load config option
+    Prompt(Data),
+    Set(Data, Field, String),
+    Get(Data, Field),
+    Render(Data),
+    Export(Data, String),
+    SaveConfig(Data, String), // TODO: add load config option
     Dead,
 }
 
+const FIELDS: [(&str, Field); 8] = [
+    ("iterations", Field::Iterations),
+    ("width", Field::Width),
+    ("height", Field::Height),
+    ("center:x", Field::CenterX),
+    ("center:y", Field::CenterY),
+    ("radius", Field::Radius),
+    ("supersampling", Field::Supersampling),
+    ("colorfunc", Field::ColorFunc),
+];
+
 impl State {
+    //////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// State execution loop //////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////
     fn execute(self) -> State {
         match self {
-            State::Prompt(render, params) => {
+            //////////////////////////////////////////////////////
+            /////////////////////// Prompt /////////////////////// 
+            //////////////////////////////////////////////////////
+            State::Prompt(data) => {
                 // Print a prompt
                 print!("> ");
                 io::stdout().flush().unwrap();
@@ -43,55 +67,48 @@ impl State {
                 let reader = io::stdin();
                 let mut input = String::new();
                 reader.read_line(&mut input).unwrap();
+
+                // If the input is empty, exit
                 if input == "" {
                     println!("exit");
                     return State::Dead;
                 }
 
+                // Remove whitespace (including newlines) from beginning and end of input
                 input = input.trim().to_string();
 
                 // Parse the input
                 if input == "" {
+                    // Input was all whitespace, user probably just hit enter, show help hint
                     println!("Enter `help` for possible commands");
-                    State::Prompt(render, params)
+                    State::Prompt(data)
                 } else if input == "quit" || input == "exit" {
+                    // Enter a dead state, causing the program to stop
                     State::Dead
                 } else if input.starts_with("set ") {
+                    // Requesting to set a field
+
+                    // Get the part of the input after the "set", and trim whitespace
                     let input = (&input[4..]).to_string().trim().to_string();
+
+                    // The first word is the name of the field
                     let first_word = input.split_whitespace().next().unwrap().to_string();
 
-                    let field_strs = vec![
-                        "iterations",
-                        "width",
-                        "height",
-                        "center:x",
-                        "center:y",
-                        "radius",
-                        "supersampling",
-                        "colorfunc",
-                    ];
-                    let fields = vec![
-                        Field::Iterations,
-                        Field::Width,
-                        Field::Height,
-                        Field::CenterX,
-                        Field::CenterY,
-                        Field::Radius,
-                        Field::Supersampling,
-                        Field::ColorFunc,
-                    ];
+                    // Find the Field enum that matches
+                    for (string, field) in FIELDS.iter() {
+                        if first_word == *string {
+                            // Remove the first part of the string, to isolate the provided value
+                            let n = string.len() + 1;
 
-                    for (idx, field) in field_strs.iter().enumerate() {
-                        if first_word == *field {
-                            let n = field.len() + 1;
+                            // Ensure the string is long enough, to prevent illegal index panics
                             if input.len() <= n - 1 {
                                 println!("Must specify a value.");
-                                return State::Prompt(render, params);
+                                return State::Prompt(data);
                             }
+
                             return State::Set(
-                                render,
-                                params,
-                                fields[idx].clone(),
+                                data,
+                                field.clone(),
                                 (&input[n..]).to_string().trim().to_string(),
                             );
                         }
@@ -101,44 +118,29 @@ impl State {
                         "{} is not a valid field.",
                         input.split_whitespace().next().unwrap()
                     );
-                    State::Prompt(render, params)
+                    State::Prompt(data)
                 } else if input.starts_with("get ") {
+                    // Requesting to read the value of a field
+
+                    // Get the part of the input after the "get", and trim whitesapce
                     let input = (&input[4..]).to_string().trim().to_string();
 
-                    let field_strs = vec![
-                        "iterations",
-                        "width",
-                        "height",
-                        "center:x",
-                        "center:y",
-                        "radius",
-                        "supersampling",
-                        "colorfunc",
-                    ];
-                    let fields = vec![
-                        Field::Iterations,
-                        Field::Width,
-                        Field::Height,
-                        Field::CenterX,
-                        Field::CenterY,
-                        Field::Radius,
-                        Field::Supersampling,
-                        Field::ColorFunc,
-                    ];
-
-                    for (idx, field) in field_strs.iter().enumerate() {
-                        if input == *field {
-                            return State::Get(render, params, fields[idx].clone());
+                    // Find the Field enum that matches
+                    for (string, field) in FIELDS.iter() {
+                        if input == *string {
+                            return State::Get(data, field.clone());
                         }
                     }
 
+                    // If none match, the field requested must not exist, so print error and return
+                    // to a prompt
                     println!(
                         "{} is not a valid field.",
                         input.split_whitespace().next().unwrap()
                     );
-                    State::Prompt(render, params)
+                    State::Prompt(data)
                 } else if input == "render" {
-                    State::Render(render, params)
+                    State::Render(data)
                 } else if input.starts_with("export ") || input.starts_with("saveconfig ") {
                     let path = Path::new(if input.starts_with("export ") {
                         &input[7..]
@@ -146,166 +148,138 @@ impl State {
                         &input[11..]
                     });
 
-                    if path.exists() {
-                        if path.is_dir() {
-                            // If it's a directory, this won't work
-                            println!("\"{}\" is a directory.", path.display());
-                            State::Prompt(render, params)
-                        } else if path.is_file() {
-                            print!(
-                                "\"{}\" already exists.  Do you want to overwrite? [Y/n] ",
-                                path.display()
-                            );
-                            io::stdout().flush().unwrap();
+                    let valid = util::can_make_file_here(&path);
 
-                            let mut conf = String::new();
-                            reader.read_line(&mut conf).unwrap();
-                            conf = conf.trim().to_string().to_lowercase();
-
-                            if conf == "y" || conf == "yes" {
-                                if input.starts_with("export ") {
-                                    State::Export(render, params, path.display().to_string())
-                                } else {
-                                    State::SaveConfig(render, params, path.display().to_string())
-                                }
-                            } else {
-                                // Don't do anything
-                                println!("No action taken.");
-                                State::Prompt(render, params)
-                            }
-                        } else {
-                            unreachable!()
-                        }
+                    if !valid {
+                        State::Prompt(data)
+                    } else if input.starts_with("export ") {
+                        State::Export(data, path.display().to_string())
                     } else {
-                        // The file doesn't exist, see if the parent does
-                        let parent = path.parent().unwrap();
-
-                        if parent.exists() {
-                            // Make sure the parent is a dir and not a file
-                            if parent.is_file() {
-                                // This won't work
-                                println!("Invalid path: \"{}\" is a file.", parent.display());
-                                State::Prompt(render, params)
-                            } else {
-                                // We're good
-                                if input.starts_with("export ") {
-                                    State::Export(render, params, path.display().to_string())
-                                } else {
-                                    State::SaveConfig(render, params, path.display().to_string())
-                                }
-                            }
-                        } else {
-                            // The parent doesn't exist, this won't work
-                            println!("No such directory: \"{}\".", parent.display());
-                            State::Prompt(render, params)
-                        }
+                        State::SaveConfig(data, path.display().to_string())
                     }
                 } else if input == "help" {
                     // Print help information
                     show_help();
 
-                    State::Prompt(render, params)
+                    State::Prompt(data)
                 } else if input == "get" {
                     println!("Must specify a field.");
 
-                    State::Prompt(render, params)
+                    State::Prompt(data)
                 } else if input == "set" {
                     println!("Must specify a field and a value.");
 
-                    State::Prompt(render, params)
+                    State::Prompt(data)
                 } else if input == "export" || input == "saveconfig" {
                     println!("Must specify a path.");
 
-                    State::Prompt(render, params)
+                    State::Prompt(data)
                 } else {
                     println!("{} is not a valid command.", input);
-                    State::Prompt(render, params)
+                    State::Prompt(data)
                 }
             }
-            State::Get(render, params, field) => {
+            //////////////////////////////////////////////////////
+            ///////////////////////// Get //////////////////////// 
+            //////////////////////////////////////////////////////
+            State::Get(data, field) => {
                 // Get the specified field of the render
                 match field {
-                    Field::Iterations => println!("{}", params.max_iter),
-                    Field::Width => println!("{}", params.image_size.0),
-                    Field::Height => println!("{}", params.image_size.1),
-                    Field::CenterX => println!("{}", params.center.0),
-                    Field::CenterY => println!("{}", params.center.1),
-                    Field::Radius => println!("{}", params.radius),
-                    Field::Supersampling => println!("{}", params.supersampling),
-                    Field::ColorFunc => println!("{}", params.colorfunction.info()),
+                    Field::Iterations => println!("{}", data.params.max_iter),
+                    Field::Width => println!("{}", data.params.image_size.0),
+                    Field::Height => println!("{}", data.params.image_size.1),
+                    Field::CenterX => println!("{}", data.params.center.0),
+                    Field::CenterY => println!("{}", data.params.center.1),
+                    Field::Radius => println!("{}", data.params.radius),
+                    Field::Supersampling => println!("{}", data.params.supersampling),
+                    Field::ColorFunc => println!("{}", data.colorfunc.info()),
                 };
 
-                State::Prompt(render, params)
+                State::Prompt(data)
             }
-            State::Set(render, mut params, field, value) => {
+            //////////////////////////////////////////////////////
+            ///////////////////////// Set //////////////////////// 
+            //////////////////////////////////////////////////////
+            State::Set(mut data, field, value) => {
                 // Set the specified field of the render
                 match field {
                     Field::Iterations => {
                         match value.parse::<u32>() {
-                            Ok(value) => params.max_iter = value,
+                            Ok(value) => data.params.max_iter = value,
                             Err(_) => println!("Invalid value: {}", value),
                         };
                     }
                     Field::Width => {
                         match value.parse::<u32>() {
-                            Ok(value) => params.image_size.0 = value,
+                            Ok(value) => data.params.image_size.0 = value,
                             Err(_) => println!("Invalid value: {}", value),
                         };
                     }
                     Field::Height => {
                         match value.parse::<u32>() {
-                            Ok(value) => params.image_size.1 = value,
+                            Ok(value) => data.params.image_size.1 = value,
                             Err(_) => println!("Invalid value: {}", value),
                         };
                     }
                     Field::CenterX => {
                         match value.parse::<Real>() {
-                            Ok(value) => params.center.0 = value,
+                            Ok(value) => data.params.center.0 = value,
                             Err(_) => println!("Invalid value: {}", value),
                         };
                     }
                     Field::CenterY => {
                         match value.parse::<Real>() {
-                            Ok(value) => params.center.1 = value,
+                            Ok(value) => data.params.center.1 = value,
                             Err(_) => println!("Invalid value: {}", value),
                         };
                     }
                     Field::Radius => {
                         match value.parse::<Real>() {
-                            Ok(value) => params.radius = value,
+                            Ok(value) => data.params.radius = value,
                             Err(_) => println!("Invalid value: {}", value),
                         };
                     }
                     Field::Supersampling => {
                         match value.parse::<u32>() {
-                            Ok(value) => params.supersampling = value,
+                            Ok(value) => data.params.supersampling = value,
                             Err(_) => println!("Invalid value: {}", value),
                         };
                     }
                     Field::ColorFunc => match value.parse::<ColorFunction>() {
-                        Ok(value) => params.colorfunction = value,
+                        Ok(value) => data.colorfunc = value,
                         Err(e) => println!("Invalid value: {} ({})", value, e),
                     },
                 };
 
-                State::Prompt(render, params)
+                State::Prompt(data)
             }
-            State::Render(mut render, params) => {
+            //////////////////////////////////////////////////////
+            /////////////////////// Render /////////////////////// 
+            //////////////////////////////////////////////////////
+            State::Render(mut data) => {
                 // Recalculate render pixels if necessary
-                render.recalc(&params);
+                data.render.recalc(&data.params);
 
                 // Render
-                match render.run(true) {
-                    Ok(_) => println!("Success!"),
-                    Err(e) => println!("There was an error: {}", e),
-                };
-
-                // Return to prompt
-                State::Prompt(render, params)
+                let job = data.render.clone().run();
+                match job.join_with_progress() {
+                    Ok(render) => {
+                        // Update the render and return
+                        State::Prompt(Data { render, ..data })
+                    }
+                    Err(msg) => {
+                        // Print error message and return
+                        println!("Error rendering: {}", msg);
+                        State::Prompt(data)
+                    }
+                }
             }
-            State::Export(render, params, path) => {
+            //////////////////////////////////////////////////////
+            /////////////////////// Export /////////////////////// 
+            //////////////////////////////////////////////////////
+            State::Export(data, path) => {
                 // Create a new image
-                let image = Image::new(&render, params.colorfunction.clone());
+                let image = Image::new(&data.render, data.colorfunc.clone());
 
                 // Export the image
                 match image.export(path) {
@@ -314,13 +288,17 @@ impl State {
                 };
 
                 // Return to the prompt
-                State::Prompt(render, params)
+                State::Prompt(data)
             }
-            State::SaveConfig(render, params, path) => {
+            //////////////////////////////////////////////////////
+            ///////////////////// Save Config //////////////////// 
+            //////////////////////////////////////////////////////
+            State::SaveConfig(data, path) => {
                 // Create the config string
                 let mut config = String::new();
 
                 // Add each configuration parameter
+                let params = data.params;
                 config.push_str(&format!("set iterations {}\n", params.max_iter));
                 config.push_str(&format!("set width {}\n", params.image_size.0));
                 config.push_str(&format!("set height {}\n", params.image_size.1));
@@ -330,7 +308,7 @@ impl State {
                 config.push_str(&format!("set supersampling {}\n", params.supersampling));
                 config.push_str(&format!(
                     "set colorfunc {}\n",
-                    params.colorfunction.info()
+                    data.colorfunc.info()
                 ));
 
                 // Save the string to the file
@@ -340,8 +318,11 @@ impl State {
                 };
 
                 // Return to the prompt
-                State::Prompt(render, params)
+                State::Prompt(Data { params, ..data })
             }
+            //////////////////////////////////////////////////////
+            //////////////////////// Dead //////////////////////// 
+            //////////////////////////////////////////////////////
             State::Dead => State::Dead,
         }
     }
@@ -350,7 +331,8 @@ impl State {
 pub fn begin(_config: Config) {
     let render = Render::default();
     let params = render.params.clone();
-    let mut state: State = State::Prompt(render, params);
+    let colorfunc = ColorFunction::greyscale();
+    let mut state: State = State::Prompt(Data { render, params, colorfunc });
 
     // CLI Loop
     loop {

@@ -1,15 +1,17 @@
-use crate::colors::*;
+use std::thread::*;
+use std::sync::{Arc, Mutex};
+use std::io::{self, prelude::*};
+
 use crate::cuda::*;
 use crate::math::*;
 
-#[derive(Clone)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Parameters {
     pub image_size: (u32, u32),
     pub supersampling: u32,
     pub center: Complex,
     pub radius: Real,
     pub max_iter: u32,
-    pub colorfunction: ColorFunction,
 }
 
 #[derive(Clone)]
@@ -17,6 +19,11 @@ pub struct Render {
     pub params: Parameters,
     pub iterations: u32,
     pub pixels: Vec<(u32, Complex, Complex, bool)>,
+}
+
+pub struct RenderJob {
+    thread: JoinHandle<std::result::Result<Render, String>>,
+    progress: Arc<Mutex<Option<f64>>>,
 }
 
 impl Render {
@@ -27,7 +34,6 @@ impl Render {
             center: Complex(0.0, 0.0),
             radius: 2.0,
             max_iter: 500,
-            colorfunction: ColorFunction::greyscale(),
         })
     }
 
@@ -68,12 +74,7 @@ impl Render {
 
     // Using the params, recalculate the pixel array
     pub fn recalc(&mut self, params: &Parameters) {
-        if self.params.image_size == params.image_size
-            && self.params.supersampling == params.supersampling
-            && self.params.center == params.center
-            && self.params.radius == params.radius
-            && self.params.max_iter >= params.max_iter
-        {
+        if self.params == *params {
             // We won't need to recalculate the pixel array
             self.params = params.clone();
         } else {
@@ -83,18 +84,65 @@ impl Render {
     }
 
     // Run a specified number of iterations on the Render
-    pub fn run(&mut self, show_progress: bool) -> Result<(), String> {
-        // Call the C code, passing the data struct and the number of iterations to do
-        let result = compute(self.clone(), show_progress);
-
-        // Update self with the results
-        match result {
-            Ok(result) => {
-                self.pixels = result.pixels;
-                self.iterations = result.iterations;
-                Ok(())
-            }
-            Err(RenderError(message)) => Err(message),
-        }
+    pub fn run(self) -> RenderJob {
+        // Create a RenderJob and return it
+        RenderJob::new(self)
     }
+}
+
+impl RenderJob {
+    fn new(mut render: Render) -> RenderJob {
+        let progress = Arc::new(Mutex::new(Some(0.0)));
+
+        let thread = {
+            let progress = Arc::clone(&progress);
+
+            std::thread::spawn(move || {
+                // Call the CUDA code, passing the render struct
+                let result = compute(render.clone(), progress);
+
+                match result {
+                    Ok(result) => {
+                        // Update the data in the Render with the new data
+                        render.pixels = result.pixels;
+                        render.iterations = result.iterations;
+
+                        // Return the new updated render
+                        Ok(render)
+                    }
+                    Err(RenderError(message)) => {
+                        // There was an error, return the message
+                        Err(message)
+                    }
+                }
+            })
+        };
+
+        // Return the created job
+        RenderJob { thread, progress }
+    }
+
+    /// Wait for the thread to finish.  This method blocks, and returns the render or error message
+    /// when the thread is finished.  It also prints out the progress until it returns.
+    pub fn join_with_progress(mut self) -> std::result::Result<Render, String> {
+        // Progress loop until 100 is returned
+        while let Some(progress) = self.progress() {
+            // Print the progress
+            print!("\rProgress: {:.*}% ", 2, progress);
+            io::stdout().flush().unwrap();
+        }
+
+        // Print 100%
+        println!("\rProgress: 100.00%");
+
+        // Join thread
+        self.thread.join().unwrap()
+    }
+
+    /// Get the progress of the job at the current time.  This method may block very briefly if the
+    /// progress mutex is locked.  Prints None if the job is complete
+    pub fn progress(&mut self) -> Option<f64> {
+        *self.progress.lock().unwrap()
+    }
+
 }
