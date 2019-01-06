@@ -1,7 +1,7 @@
 use std::error;
 use std::fmt;
-
 use std::io::{self, prelude::*};
+use std::sync::{Arc, Mutex};
 
 use crate::math::Complex;
 use crate::render::Render;
@@ -41,7 +41,7 @@ extern "C" {
     fn cuda_compute(iterations: u32, data: FFIRenderData, progress: *mut *mut u64) -> u32;
 }
 
-pub fn compute(render: Render, show_progress: bool) -> Result {
+pub fn compute(render: Render, progress_arc_mutex: Arc<Mutex<Option<f64>>>) -> Result {
     // Convert to FFI-safe array
     let mut pixels_vec: Vec<FFIPixel> = render
         .pixels
@@ -71,32 +71,30 @@ pub fn compute(render: Render, show_progress: bool) -> Result {
     let progress_ptr: u64 = (&mut progress as *mut *mut u64) as u64;
 
     let progress_thread = std::thread::spawn(move || {
-        unsafe {
-            if show_progress {
-                loop {
-                    // Read the pointer's value (another ptr)
-                    let progress = *(progress_ptr as *mut *mut u64);
+        let progress_arc_mutex = Arc::clone(&progress_arc_mutex);
+        loop {
+            // Read the pointer's value (another ptr)
+            let progress = unsafe { *(progress_ptr as *mut *mut u64) };
 
-                    // If it's 0, we can't read the progress
-                    if progress as u64 > 0 {
-                        // Get the value of the progress
-                        let p = *progress;
+            // If it's 0, we can't read the progress
+            if progress as u64 > 0 {
+                // Get the value of the progress
+                let p = unsafe { *progress };
 
-                        // Check for break signal
-                        if p == 18_446_744_073_709_551_615 {
-                            println!("Progress: 100.00%");
-                            break;
-                        }
-
-                        let p = p as f64 / max as f64 * 100.0;
-
-                        // Print the progress
-                        print!("Progress: {:.*}%\r", 2, p);
-                        io::stdout().flush().unwrap();
-
-                        std::thread::sleep(std::time::Duration::from_millis(10));
-                    }
+                // Check for break signal
+                if p == 18_446_744_073_709_551_615 {
+                    // Update the value with 100
+                    *progress_arc_mutex.lock().unwrap() = None;
+                    break
                 }
+
+                let p = p as f64 / max as f64 * 100.0;
+
+                // Update the progress
+                *progress_arc_mutex.lock().unwrap() = Some(p);
+                io::stdout().flush().unwrap();
+
+                std::thread::sleep(std::time::Duration::from_millis(10));
             }
         }
     });
@@ -110,6 +108,7 @@ pub fn compute(render: Render, show_progress: bool) -> Result {
         )
     };
 
+    #[allow(unused_assignments)]
     match result_code {
         0 => {
             // Stop the progress thread

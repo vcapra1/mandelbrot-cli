@@ -1,3 +1,6 @@
+use std::path::Path;
+use std::io::{self, prelude::*};
+
 // Holds information about the program configuration for this execution,
 // including whether or not to run in GUI mode and what port to use to
 // communicate to the GUI if applicable.
@@ -73,4 +76,52 @@ pub fn parse_args(args: Vec<String>) -> Config {
     }
 
     config
+}
+
+pub fn can_make_file_here(path: &Path) -> bool {
+    if path.exists() {
+        if path.is_dir() {
+            // If it's a directory, this won't work
+            println!("\"{}\" is a directory.", path.display());
+            false
+        } else if path.is_file() {
+            print!(
+                "\"{}\" already exists.  Do you want to overwrite? [Y/n] ",
+                path.display()
+            );
+            io::stdout().flush().unwrap();
+
+            let mut conf = String::new();
+            io::stdin().read_line(&mut conf).unwrap();
+            conf = conf.trim().to_string().to_lowercase();
+
+            if conf == "y" || conf == "yes" {
+                true
+            } else {
+                println!("No action taken.");
+                false
+            }
+        } else {
+            unreachable!()
+        }
+    } else {
+        // The file doesn't exist, see if the parent does
+        let parent = path.parent().unwrap();
+
+        if parent.exists() {
+            // Make sure the parent is a dir and not a file
+            if parent.is_file() {
+                // This won't work
+                println!("Invalid path: \"{}\" is a file.", parent.display());
+                false
+            } else {
+                // We're good
+                true
+            }
+        } else {
+            // The parent doesn't exist, this won't work
+            println!("No such directory: \"{}\".", parent.display());
+            true
+        }
+    }
 }
