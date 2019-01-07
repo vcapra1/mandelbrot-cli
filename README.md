@@ -1,5 +1,26 @@
 # Mandelbrot Set Explorer
 
+## To-do
+* Add progress messages to the GUI, such as "preparing" while the render
+memory is being allocated, and "saving image" while the image is being
+exported, as both tend to take more than a few seconds when the image is
+sufficiently large.
+* Don't ever clone a Render struct, because it holds ALL the pixel data,
+which is a ton of memory, and images larger than about 2k pixels are
+exhausting the memory and crashing the program.
+* In the GUI, add a feature to save the image (which will just require
+copying the exported file from the /tmp directory to a user-decided
+location
+* Maybe add a "Cancel" button while the render is in progress, which
+halts the device threads, or whatever is happening at that time
+* Interacting with the canvas: click to set center, draw box to make new
+render window (saving aspect ratio).  This will require saving the config
+in the Java program and using that to calculate the new center and window
+bounds.
+* Remove excessive logs from Rust gui.rs
+* Make window non-resizable
+* Package frontend and backend into one program
+
 ## Workflow of using the program
 There is the notion of a `Render`, which is essentially a 2-dimensional array of tuples, each corresponding to a pixel and containing the following information:
 * The complex coordinate corresponding to the pixel (c)
@@ -9,7 +30,7 @@ There is the notion of a `Render`, which is essentially a 2-dimensional array of
 
 The `Render` structure also stores information about the image's size and number of iterations calculated so far.
 
-By storing the `Render` in this format, we can go back and increase the number of iterations without needing to recalculate up to the current number of iterations.  
+By storing the `Render` in this format, we can go back and increase the number of iterations without needing to recalculate up to the current number of iterations.
 For example, if the `Render` has been computed up to 2000 iterations, a `Render` of the same window reigon can be computed by picking up from iteration 2000 only
 on the pixels that have not yet diverged, which will be much faster than re-calculating all 3000 iterations.
 
@@ -44,7 +65,7 @@ of `f64`, but later I hope to be able to write or use a new type that allows for
 
 ## Back-end
 The backend will be written in Rust, using FFI with C to run CUDA computations.  The only CUDA code will be the iterative function z(n + 1) = z(n) ^ 2 + c.  All
-other computations, such as the color function, will be done in Rust because they are not nearly as computationally intensive.  The actual computation is 
+other computations, such as the color function, will be done in Rust because they are not nearly as computationally intensive.  The actual computation is
 O(n^2\*m), where n is the image dimension and m is the max number of iterations.  The color function should be O(n^2), which is much smaller and doesn't involve
 high-precision floating-point computation.
 
