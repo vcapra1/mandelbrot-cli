@@ -21,6 +21,8 @@ import javafx.scene.canvas.GraphicsContext;
 
 public class ControlPane extends GridPane {
 
+    private boolean mEnabled = true;
+
     private TextField mIterationsTextField,
                       mImageWidthTextField,
                       mImageHeightTextField,
@@ -30,6 +32,17 @@ public class ControlPane extends GridPane {
                       mRadiusTextField,
                       mColorShiftTextField,
                       mColorScaleTextField;
+
+    private String mSavedIterations,
+                   mSavedImageWidth,
+                   mSavedImageHeight,
+                   mSavedSupersampling,
+                   mSavedCenterX,
+                   mSavedCenterY,
+                   mSavedRadius,
+                   mSavedColorShift,
+                   mSavedColorScale,
+                   mSavedColorFunction;
 
     private Label mIterationsLabel,
                   mImageWidthLabel,
@@ -55,7 +68,7 @@ public class ControlPane extends GridPane {
         Radius, ColorShift, ColorScale, ColorFunction
     }
 
-    public ControlPane(SocketComm socketComm, GraphicsContext imageGC) {
+    public ControlPane(SocketComm socketComm, GraphicsContext imageGC, App app) {
         mSocketComm = socketComm;
 
         // Set the gap between each cell
@@ -154,6 +167,7 @@ public class ControlPane extends GridPane {
 
                     // Disable the UI
                     ControlPane.this.setEnabled(false);
+                    saveState();
 
                     // Send the render message
                     final boolean result = renderRequest();
@@ -184,12 +198,13 @@ public class ControlPane extends GridPane {
 
                     // Show the image
                     if (!output.isEmpty()) {
-                        // TODO: show image
+                        // Show image
                         File file = new File(output);
 
                         try {
                             Image img = new Image(file.toURI().toURL().toExternalForm(), 800, 800, true, true);
                             imageGC.drawImage(img, 0, 0);
+                            app.resetDrawCanvas();
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -200,6 +215,8 @@ public class ControlPane extends GridPane {
                 }
             }.start();
         });
+
+        saveState();
     }
 
     private static Label makeLabel(String text) {
@@ -340,6 +357,25 @@ public class ControlPane extends GridPane {
             updateColorInputs(colorFunc);
             updateButton();
         }
+
+        mEnabled = enabled;
+    }
+
+    public boolean isEnabled() {
+        return mEnabled;
+    }
+
+    private void saveState() {
+        mSavedIterations = mIterationsTextField.getText();
+        mSavedImageWidth = mImageWidthTextField.getText();
+        mSavedImageHeight = mImageHeightTextField.getText();
+        mSavedSupersampling = mSupersamplingTextField.getText();
+        mSavedCenterX = mCenterXTextField.getText();
+        mSavedCenterY = mCenterYTextField.getText();
+        mSavedRadius = mRadiusTextField.getText();
+        mSavedColorShift = mColorShiftTextField.getText();
+        mSavedColorScale = mColorScaleTextField.getText();
+        mSavedColorFunction = (String) mColorFunctionComboBox.getValue();
     }
 
     private void updateColorInputs(String colorFunc) {
@@ -472,6 +508,14 @@ public class ControlPane extends GridPane {
 
     private static void setFont(javafx.scene.control.Labeled component) {
         component.setFont(Font.loadFont(App.class.getClassLoader().getResource("fonts/NotoSans-Regular.ttf").toExternalForm(), 14));
+    }
+
+    public double getSavedAspect() {
+        try {
+            return Double.parseDouble(mSavedImageWidth) / Double.parseDouble(mSavedImageHeight);
+        } catch (Exception e) {
+            return 1.0;
+        }
     }
     
 }
