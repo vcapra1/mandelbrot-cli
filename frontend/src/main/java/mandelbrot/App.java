@@ -137,6 +137,10 @@ public class App extends Application {
     }
 
     private void drawSetting(GraphicsContext gcDraw) {
+        if ((setX == -1 || setY == -1) && (setW == 0 && setH == 0)) return;
+
+        // TODO Make sure rectangle is in bounds of the drawing
+
         if (setW == 0 || setH == 0) {
             // draw crosshair at set x,y
             gcDraw.setStroke(Color.WHITE);
@@ -152,7 +156,8 @@ public class App extends Application {
             double drawnAspect = (double) setW / (double) setH;
 
             gcDraw.setFill(Color.rgb(255, 255, 255, 0.5));
-            gcDraw.fillRect(setX, setY, setW, setH);
+            gcDraw.setStroke(Color.WHITE);
+            gcDraw.strokeRect(setX, setY, setW, setH);
 
             if (aspect < drawnAspect) {
                 // taller than drawn box

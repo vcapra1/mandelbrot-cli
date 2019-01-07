@@ -265,6 +265,7 @@ impl State {
                 match job.join_with_progress() {
                     Ok((render, _)) => {
                         // Update the render and return
+                        println!("Success");
                         State::Prompt(Data { render, ..data })
                     }
                     Err(msg) => {

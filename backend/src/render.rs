@@ -144,6 +144,7 @@ impl RenderJob {
                                 }
                             }
                         } else {
+                            *progress.lock().unwrap() = None;
                             Ok((render, None))
                         }
                     }

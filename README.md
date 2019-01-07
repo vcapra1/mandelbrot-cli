@@ -1,8 +1,6 @@
 # Mandelbrot Set Explorer
 
 ## Problems
-* When trying to render an image with a high (or low) aspect ratio (e.g. 
-10:1 or 1:10), the operation never finishes
 * User can draw box outside of image in GUI
 
 ## To-do

@@ -51,8 +51,6 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
         // Remove null bytes from end of string
         let line = line.trim_matches(char::from(0)).trim();
 
-        println!("Received: {}", line);
-
         if line.starts_with("render") {
             // Make sure there isn't already an operatin in progress
             if let Some(ref mut operation) = current_operation {

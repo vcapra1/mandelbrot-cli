@@ -12,11 +12,13 @@ pub struct Image {
 
 impl Image {
     pub fn new(render: &Render, color_func: ColorFunction) -> Image {
-        // Use the provided color functino to map each pixel from the render to a color
+        // Use the provided color function to map each pixel from the render to a color
         let pixels: Vec<_> = render
             .pixels
             .iter()
-            .map(|(i, _, z, _)| (*color_func.func)(*i, render.iterations, *z))
+            .map(|(i, _, z, _)| {
+                (*color_func.func)(*i, render.iterations, *z)
+            })
             .collect();
 
         Image {

@@ -3,7 +3,7 @@ use std::ops::{Add, Div, Mul, Sub};
 // Scalar floating-point type to be used across the program
 pub type Real = f64;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 // Complex floating-point type to be used across the program
 pub struct Complex(pub Real, pub Real);
 

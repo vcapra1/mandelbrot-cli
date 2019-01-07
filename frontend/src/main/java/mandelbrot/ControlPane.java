@@ -203,6 +203,7 @@ public class ControlPane extends GridPane {
 
                         try {
                             Image img = new Image(file.toURI().toURL().toExternalForm(), 800, 800, true, true);
+                            imageGC.clearRect(0, 0, 800, 800);
                             imageGC.drawImage(img, 0, 0);
                             app.resetDrawCanvas();
                         } catch (Exception e) {
@@ -257,6 +258,8 @@ public class ControlPane extends GridPane {
         });
 
         textField.setText("" + defaultValue);
+        textField.setFont(Font.loadFont(App.class.getClassLoader().getResource("fonts/NotoSans-Regular.ttf").toExternalForm(), 12));
+        textField.setPrefWidth(100);
 
         return textField;
     }
@@ -293,6 +296,8 @@ public class ControlPane extends GridPane {
         });
 
         textField.setText("" + defaultValue);
+        textField.setFont(Font.loadFont(App.class.getClassLoader().getResource("fonts/NotoSans-Regular.ttf").toExternalForm(), 12));
+        textField.setPrefWidth(100);
 
         return textField;
     }
@@ -489,7 +494,7 @@ public class ControlPane extends GridPane {
 
         if (selected.equals("Greyscale")) {
             return "greyscale";
-        } else if (selected.equals("Reversed Greyscale")) {
+        } else if (selected.equals("Reversed greyscale")) {
             return "rgreyscale";
         } else if (selected.equals("Colorized")) {
             String shift = mColorShiftTextField.getText();
@@ -499,11 +504,9 @@ public class ControlPane extends GridPane {
             String shift = mColorShiftTextField.getText();
             String scale = mColorScaleTextField.getText();
             return "red(" + shift + "," + scale + ")";
-        } else {
-            // What??
-            mColorFunctionComboBox.setValue("Greyscale");
-            return formatColorFunction();
         }
+
+        return "greyscale";
     }
 
     private static void setFont(javafx.scene.control.Labeled component) {

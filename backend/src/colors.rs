@@ -128,7 +128,10 @@ impl ColorFunction {
                     Color::RGB(0.0, 0.0, 0.0)
                 } else {
                     let size = z.abs();
-                    let smoothed = size.log(2.0).log(2.0);
+                    let mut smoothed = size.log(2.0).log(2.0);
+                    if smoothed > 2.0 {
+                        smoothed = 2.0;
+                    }
                     let idx = ((i as f64 + 1.0 - smoothed) * scale + shift as f64) as i32 % 2048;
                     colors[idx as usize]
                 }
@@ -157,7 +160,10 @@ impl ColorFunction {
                     Color::RGB(0.0, 0.0, 0.0)
                 } else {
                     let size = z.abs();
-                    let smoothed = size.log(2.0).log(2.0);
+                    let mut smoothed = size.log(2.0).log(2.0);
+                    if smoothed > 2.0 {
+                        smoothed = 2.0;
+                    }
                     let idx = ((i as f64 + 1.0 - smoothed) * scale + shift as f64) as i32 % 2048;
                     colors[idx as usize]
                 }
