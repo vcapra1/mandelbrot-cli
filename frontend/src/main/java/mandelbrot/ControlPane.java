@@ -2,6 +2,7 @@ package mandelbrot;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.io.File;
 
 import javafx.geometry.Insets;
 
@@ -15,6 +16,8 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.Priority;
+import javafx.scene.image.Image;
+import javafx.scene.canvas.GraphicsContext;
 
 public class ControlPane extends GridPane {
 
@@ -52,7 +55,7 @@ public class ControlPane extends GridPane {
         Radius, ColorShift, ColorScale, ColorFunction
     }
 
-    public ControlPane(SocketComm socketComm) {
+    public ControlPane(SocketComm socketComm, GraphicsContext imageGC) {
         mSocketComm = socketComm;
 
         // Set the gap between each cell
@@ -177,9 +180,19 @@ public class ControlPane extends GridPane {
                     // Request the rendered data file path
                     String output = outputRequest();
 
+                    System.out.println("---" + output + "---");
+
                     // Show the image
                     if (!output.isEmpty()) {
                         // TODO: show image
+                        File file = new File(output);
+
+                        try {
+                            Image img = new Image(file.toURI().toURL().toExternalForm(), 800, 800, true, true);
+                            imageGC.drawImage(img, 0, 0);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
 
                     // Enable the UI
@@ -416,10 +429,16 @@ public class ControlPane extends GridPane {
         String response = "";
 
         try {
-            response = mSocketComm.sendAndReceive(request);
-        
-            if (response.trim().equals("error(5)")) {
-                return "";
+            while (true) {
+                response = mSocketComm.sendAndReceive(request);
+            
+                if (response.trim().equals("error(5)")) {
+                    return "";
+                } else if (response.trim().equals("error(6.2)")) {
+                    continue;
+                }
+
+                break;
             }
 
             return response;

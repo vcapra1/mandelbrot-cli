@@ -41,7 +41,7 @@ public class App extends Application {
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
         // Create the controls layout
-        ControlPane controlsPane = new ControlPane(mSocketComm);
+        ControlPane controlsPane = new ControlPane(mSocketComm, gc);
 
         // Create the root layout
         VBox root = new VBox(canvas, controlsPane);

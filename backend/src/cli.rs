@@ -263,7 +263,7 @@ impl State {
                 // Render
                 let job = data.render.clone().run();
                 match job.join_with_progress() {
-                    Ok(render) => {
+                    Ok((render, _)) => {
                         // Update the render and return
                         State::Prompt(Data { render, ..data })
                     }

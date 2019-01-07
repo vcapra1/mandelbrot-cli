@@ -5,6 +5,7 @@ authors = ["vinnie"]
 edition = "2018"
 
 [dependencies]
+rand = "0.6.3"
 libc = "0.2.0"
 image = "0.20.1"
 

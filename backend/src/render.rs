@@ -1,9 +1,15 @@
+extern crate rand;
+
+use rand::{thread_rng, Rng, distributions::Alphanumeric};
+
 use std::thread::*;
 use std::sync::{Arc, Mutex};
 use std::io::{self, prelude::*};
 
 use crate::cuda::*;
 use crate::math::*;
+use crate::image::*;
+use crate::colors::*;
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Parameters {
@@ -22,7 +28,7 @@ pub struct Render {
 }
 
 pub struct RenderJob {
-    thread: JoinHandle<std::result::Result<Render, String>>,
+    thread: JoinHandle<std::result::Result<(Render, Option<String>), String>>,
     progress: Arc<Mutex<Option<f64>>>,
 }
 
@@ -86,12 +92,17 @@ impl Render {
     // Run a specified number of iterations on the Render
     pub fn run(self) -> RenderJob {
         // Create a RenderJob and return it
-        RenderJob::new(self)
+        RenderJob::new(self, "".into())
+    }
+
+    pub fn run_and_export(self, colorfunc: ColorFunction) -> RenderJob {
+        // Create a RenderJob and return it
+        RenderJob::new(self, colorfunc.info())
     }
 }
 
 impl RenderJob {
-    fn new(mut render: Render) -> RenderJob {
+    fn new(mut render: Render, colorfunc: String) -> RenderJob {
         let progress = Arc::new(Mutex::new(Some(0.0)));
 
         let thread = {
@@ -99,16 +110,42 @@ impl RenderJob {
 
             std::thread::spawn(move || {
                 // Call the CUDA code, passing the render struct
-                let result = compute(render.clone(), progress);
+                let result = compute(render.clone(), Arc::clone(&progress));
 
                 match result {
+
                     Ok(result) => {
                         // Update the data in the Render with the new data
                         render.pixels = result.pixels;
                         render.iterations = result.iterations;
 
-                        // Return the new updated render
-                        Ok(render)
+                        if colorfunc != "" {
+                            // Export the image
+                            let image = Image::new(&render, colorfunc.parse::<ColorFunction>().unwrap());
+
+                            let rand_string: String = thread_rng()
+                                .sample_iter(&Alphanumeric)
+                                .take(32)
+                                .collect();
+                            let path = format!("{}/mandelbrot{}.png", std::env::temp_dir().as_path().display(), rand_string);
+
+                            // Export the image
+                            match image.export(path.clone()) {
+                                Ok(_) => {
+                                    println!("Image exported to {}", path);
+                                    // Update progress
+                                    *progress.lock().unwrap() = None;
+                                    Ok((render, Some(path)))
+                                }
+                                Err(_) => {
+                                    // Update progress
+                                    *progress.lock().unwrap() = None;
+                                    Err("Could not export image".into())
+                                }
+                            }
+                        } else {
+                            Ok((render, None))
+                        }
                     }
                     Err(RenderError(message)) => {
                         // There was an error, return the message
@@ -124,7 +161,7 @@ impl RenderJob {
 
     /// Wait for the thread to finish.  This method blocks, and returns the render or error message
     /// when the thread is finished.  It also prints out the progress until it returns.
-    pub fn join_with_progress(mut self) -> std::result::Result<Render, String> {
+    pub fn join_with_progress(self) -> std::result::Result<(Render, Option<String>), String> {
         // Progress loop until 100 is returned
         while let Some(progress) = self.progress() {
             // Print the progress
@@ -141,7 +178,7 @@ impl RenderJob {
 
     /// Wait for the thread to finish.  This method blocks, and returns the render or error message
     /// when the thread is finished.
-    pub fn join(mut self) -> std::result::Result<Render, String> {
+    pub fn join(self) -> std::result::Result<(Render, Option<String>), String> {
         self.thread.join().unwrap()
     }
 

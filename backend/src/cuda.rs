@@ -84,7 +84,7 @@ pub fn compute(render: Render, progress_arc_mutex: Arc<Mutex<Option<f64>>>) -> R
                 // Check for break signal
                 if p == 18_446_744_073_709_551_615 {
                     // Update the value with 100
-                    *progress_arc_mutex.lock().unwrap() = None;
+                    *progress_arc_mutex.lock().unwrap() = Some(100.0);
                     break
                 }
 

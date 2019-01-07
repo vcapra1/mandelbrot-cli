@@ -185,7 +185,7 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
             stream.write("ok\n".as_bytes())?;
 
             // Begin rendering, and set the current operation
-            current_operation = Some(render.clone().run());
+            current_operation = Some(render.clone().run_and_export(colorfunc));
         } else if line == "progress" {
             if let Some(ref operation) = current_operation {
                 // Get the progress
@@ -207,25 +207,23 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                 } else {
                     // We good, fetch the result
                     match current_operation.take().unwrap().join() {
-                        Ok(new_render) => {
+                        Ok((new_render, path)) => {
                             // Save the render
                             render = new_render;
 
-                            // 
+                            // Write the path
+                            let response = format!("{}\n", path.unwrap());
+                            stream.write((&response[..]).as_bytes())?;
                         }
-                        Err(e) => {
+                        Err(_) => {
                             stream.write("error(6.3)\n".as_bytes())?;
                         }
                     }
                 }
-
             } else {
                 // No operation
                 stream.write("error(6.1)\n".as_bytes())?;
             }
-            // Return /tmp file location of exported image
-
-            stream.write("error(0)\n".as_bytes())?;
         } else if line == "exit" {
             stream.write("ok\n".as_bytes())?;
             break;
