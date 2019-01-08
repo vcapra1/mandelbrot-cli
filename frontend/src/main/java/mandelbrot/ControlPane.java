@@ -5,9 +5,7 @@ import java.util.Collections;
 import java.io.File;
 
 import javafx.geometry.Insets;
-
 import javafx.scene.text.Font;
-
 import javafx.scene.layout.GridPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Label;
@@ -21,137 +19,62 @@ import javafx.scene.canvas.GraphicsContext;
 
 public class ControlPane extends GridPane {
 
-    private boolean mEnabled = true;
-
-    private TextField mIterationsTextField,
-                      mImageWidthTextField,
-                      mImageHeightTextField,
-                      mSupersamplingTextField,
-                      mCenterXTextField,
-                      mCenterYTextField,
-                      mRadiusTextField,
-                      mColorShiftTextField,
-                      mColorScaleTextField;
-
-    private String mSavedIterations,
-                   mSavedImageWidth,
-                   mSavedImageHeight,
-                   mSavedSupersampling,
-                   mSavedCenterX,
-                   mSavedCenterY,
-                   mSavedRadius,
-                   mSavedColorShift,
-                   mSavedColorScale,
-                   mSavedColorFunction;
-
-    private Label mIterationsLabel,
-                  mImageWidthLabel,
-                  mImageHeightLabel,
-                  mSupersamplingLabel,
-                  mCenterXLabel,
-                  mCenterYLabel,
-                  mRadiusLabel,
-                  mColorShiftLabel,
-                  mColorScaleLabel,
-                  mColorFunctionLabel;
-
-    private Button mRenderButton;
+    /**
+     * All the input text fields to be shown in the control pane
+     */
+    private TextField mIterationsTextField, mImageWidthTextField, mImageHeightTextField, mSupersamplingTextField,
+                      mCenterXTextField, mCenterYTextField, mRadiusTextField, mColorShiftTextField, mColorScaleTextField;
+    
+    /**
+     * Combo box for selecting the type of color function to use when creating the image
+     */
     private ComboBox mColorFunctionComboBox;
+
+    /**
+     * Values of the text fields as of the last render
+     */
+    private String mSavedIterations, mSavedImageWidth, mSavedImageHeight, mSavedSupersampling, mSavedCenterX,
+                   mSavedCenterY, mSavedRadius, mSavedColorShift, mSavedColorScale, mSavedColorFunction; 
+
+    /**
+     * The labels for the input text fields and combo box
+     */
+    private Label mIterationsLabel, mImageWidthLabel, mImageHeightLabel, mSupersamplingLabel, mCenterXLabel,
+                  mCenterYLabel, mRadiusLabel, mColorShiftLabel, mColorScaleLabel, mColorFunctionLabel;
+
+    /**
+     * The button that sends the render request along with all the configuration data
+     */
+    private Button mRenderButton;
+
+    /**
+     * Render progress bar to indicate the progress of the render operation
+     */
     private ProgressBar mRenderProgressBar;
 
+    /**
+     * A list of potentially invalid text fields to check when validating the input data
+     */
     private ArrayList<TextField> mPossiblyInvalidTextFields = new ArrayList<>();
 
-    private SocketComm mSocketComm;
+    /**
+     * The Application instance that the program is running from
+     */
+    private App mApp;
 
+    /**
+     * All fields to be used to specify which field is associated with a particular operation
+     */
     private enum Field {
-        Iterations, Width, Height, Supersampling, CenterX, CenterY, 
-        Radius, ColorShift, ColorScale, ColorFunction
+        Iterations, Width, Height, Supersampling, CenterX, CenterY, Radius, ColorShift, ColorScale, ColorFunction
     }
 
-    public ControlPane(SocketComm socketComm, GraphicsContext imageGC, App app) {
-        mSocketComm = socketComm;
+    public ControlPane(App app) {
+        // Save the app reference for later use
+        mApp = app;
 
-        // Set the gap between each cell
-        setVgap(3);
-        setHgap(3);
-
-        // Set the padding aroud the entire pane
-        setPadding(new Insets(12));
-
-        // Create the labels
-        mIterationsLabel = makeLabel("Iterations");
-        mImageWidthLabel = makeLabel("Image Width");
-        mImageHeightLabel = makeLabel("Image Height");
-        mSupersamplingLabel = makeLabel("Supersampling");
-        mCenterXLabel = makeLabel("Center X");
-        mCenterYLabel = makeLabel("Center Y");
-        mRadiusLabel = makeLabel("Radius");
-        mColorShiftLabel = makeLabel("Color Shift");
-        mColorScaleLabel = makeLabel("Color Scale");
-        mColorFunctionLabel = makeLabel("Color Function");
-
-        // Create the text fields
-        mIterationsTextField = makeTextField(Field.Iterations, 500, 0, Integer.MAX_VALUE);
-        mImageWidthTextField = makeTextField(Field.Width, 1000, 0, Integer.MAX_VALUE);
-        mImageHeightTextField = makeTextField(Field.Height, 1000, 0, Integer.MAX_VALUE);
-        mSupersamplingTextField = makeTextField(Field.Supersampling, 1, 1, 8);
-        mCenterXTextField = makeTextField(Field.CenterX, 0.0, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
-        mCenterYTextField = makeTextField(Field.CenterY, 0.0, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
-        mRadiusTextField = makeTextField(Field.Radius, 2.0, 0.0, Double.POSITIVE_INFINITY);
-        mColorShiftTextField = makeTextField(Field.ColorShift, 0, 0, 2047);
-        mColorScaleTextField = makeTextField(Field.ColorScale, 32.0, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
-        
-        // Create the "Render" button
-        mRenderButton = new Button("Render");
-        setFont(mRenderButton);
-
-        // Create the Color Function combo box
-        mColorFunctionComboBox = new ComboBox();
-
-        // Create the progress bar
-        mRenderProgressBar = new ProgressBar(0.0);
-
-        // Add all the components to the GridView
-        add(mIterationsLabel, 0, 0);
-        add(mImageWidthLabel, 0, 1);
-        add(mImageHeightLabel, 0, 2);
-        add(mSupersamplingLabel, 0, 3);
-        add(mCenterXLabel, 3, 0);
-        add(mCenterYLabel, 3, 1);
-        add(mRadiusLabel, 3, 2);
-        add(mColorFunctionLabel, 6, 0);
-        add(mColorShiftLabel, 6, 1);
-        add(mColorScaleLabel, 6, 2);
-
-        add(mIterationsTextField, 1, 0);
-        add(mImageWidthTextField, 1, 1);
-        add(mImageHeightTextField, 1, 2);
-        add(mSupersamplingTextField, 1, 3);
-        add(mCenterXTextField, 4, 0);
-        add(mCenterYTextField, 4, 1);
-        add(mRadiusTextField, 4, 2);
-        add(mColorFunctionComboBox, 7, 0);
-        add(mColorShiftTextField, 7, 1);
-        add(mColorScaleTextField, 7, 2);
-
-        add(mRenderButton, 7, 3);
-        add(mRenderProgressBar, 3, 3, 4, 1);
-
-        mRenderProgressBar.setPrefWidth(200);
-        mRenderProgressBar.setPrefHeight(25);
-
-        // Add spacers between groups of columns
-        Region sep1 = new Region();
-        sep1.setPrefWidth(36);
-        add(sep1, 2, 0);
-        Region sep2 = new Region();
-        sep2.setPrefWidth(36);
-        add(sep2, 5, 0);
-
-        // Add options to selection dropdown for color function
-        mColorFunctionComboBox.getItems().addAll(
-            "Greyscale", "Reversed greyscale", "Colorized", "Red");
-        mColorFunctionComboBox.setValue("Colorized");
+        // Initialize the pane
+        init();
 
         mColorFunctionComboBox.valueProperty().addListener((observed, oldValue, newValue) -> {
             ControlPane.this.updateColorInputs((String) newValue);
@@ -206,6 +129,7 @@ public class ControlPane extends GridPane {
                             imageGC.clearRect(0, 0, 800, 800);
                             imageGC.drawImage(img, 0, 0);
                             app.resetDrawCanvas();
+                            app.mCanvasEnabled = true;
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -220,14 +144,118 @@ public class ControlPane extends GridPane {
         saveState();
     }
 
+    /**
+     * Initializes the pane by creating all children and setting properties
+     * of the pane
+     */
+    private void init() {
+        // Set the gap between each cell
+        setVgap(3);
+        setHgap(3);
+
+        // Set the padding aroud the entire pane
+        setPadding(new Insets(12));
+
+        // Create the labels
+        mIterationsLabel = makeLabel("Iterations");
+        mImageWidthLabel = makeLabel("Image Width");
+        mImageHeightLabel = makeLabel("Image Height");
+        mSupersamplingLabel = makeLabel("Supersampling");
+        mCenterXLabel = makeLabel("Center X");
+        mCenterYLabel = makeLabel("Center Y");
+        mRadiusLabel = makeLabel("Radius");
+        mColorShiftLabel = makeLabel("Color Shift");
+        mColorScaleLabel = makeLabel("Color Scale");
+        mColorFunctionLabel = makeLabel("Color Function");
+
+        // Create the text fields
+        mIterationsTextField = makeTextField(Field.Iterations, 500, 0, Integer.MAX_VALUE);
+        mImageWidthTextField = makeTextField(Field.Width, 1000, 0, Integer.MAX_VALUE);
+        mImageHeightTextField = makeTextField(Field.Height, 1000, 0, Integer.MAX_VALUE);
+        mSupersamplingTextField = makeTextField(Field.Supersampling, 1, 1, 8);
+        mCenterXTextField = makeTextField(Field.CenterX, 0.0, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+        mCenterYTextField = makeTextField(Field.CenterY, 0.0, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+        mRadiusTextField = makeTextField(Field.Radius, 2.0, 0.0, Double.POSITIVE_INFINITY);
+        mColorShiftTextField = makeTextField(Field.ColorShift, 0, 0, 2047);
+        mColorScaleTextField = makeTextField(Field.ColorScale, 32.0, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+        
+        // Create the Color Function combo box
+        mColorFunctionComboBox = new ComboBox();
+
+        // Create the "Render" button
+        mRenderButton = new Button("Render");
+        setFont(mRenderButton);
+
+        // Create the progress bar
+        mRenderProgressBar = new ProgressBar(0.0);
+
+        // Add all the components to the GridView
+        add(mIterationsLabel, 0, 0);
+        add(mImageWidthLabel, 0, 1);
+        add(mImageHeightLabel, 0, 2);
+        add(mSupersamplingLabel, 0, 3);
+        add(mCenterXLabel, 3, 0);
+        add(mCenterYLabel, 3, 1);
+        add(mRadiusLabel, 3, 2);
+        add(mColorFunctionLabel, 6, 0);
+        add(mColorShiftLabel, 6, 1);
+        add(mColorScaleLabel, 6, 2);
+
+        add(mIterationsTextField, 1, 0);
+        add(mImageWidthTextField, 1, 1);
+        add(mImageHeightTextField, 1, 2);
+        add(mSupersamplingTextField, 1, 3);
+        add(mCenterXTextField, 4, 0);
+        add(mCenterYTextField, 4, 1);
+        add(mRadiusTextField, 4, 2);
+        add(mColorFunctionComboBox, 7, 0);
+        add(mColorShiftTextField, 7, 1);
+        add(mColorScaleTextField, 7, 2);
+
+        add(mRenderButton, 7, 3);
+        add(mRenderProgressBar, 3, 3, 4, 1);
+
+        mRenderProgressBar.setPrefWidth(200);
+        mRenderProgressBar.setPrefHeight(25);
+
+        // Add spacers between groups of columns
+        Region sep1 = new Region();
+        sep1.setPrefWidth(36);
+        add(sep1, 2, 0);
+        Region sep2 = new Region();
+        sep2.setPrefWidth(36);
+        add(sep2, 5, 0);
+
+        // Add options to selection dropdown for color function
+        mColorFunctionComboBox.getItems().addAll(
+            "Greyscale", "Reversed greyscale", "Colorized", "Red");
+        mColorFunctionComboBox.setValue("Colorized");
+
+    }
+
     private static Label makeLabel(String text) {
         Label label = new Label(text);
         setFont(label);
         return label;
     }
 
-    private TextField makeTextField(Field field, int defaultValue, int min, int max) {
+    /**
+     * Create a TextField with the given field and default value (and range)
+     */
+    private <T extends Number> TextField makeTextField(Field field, T defaultValue, T min, T max) {
+        // Create the text field
         TextField textField = new TextField();
+
+        // Set the value as the default value
+        textField.setText("" + defaultValue);
+
+        // Set the font to Noto Sans
+        textField.setFont(Font.loadFont(App.class.getClassLoader().getResource("fonts/NotoSans-Regular.ttf").toExternalForm(), 12));
+
+        // Set the width to 100px (default width for all textfields)
+        textField.setPrefWidth(100);
+        textField.setMaxWidth(100);
+
         // Add change listener
         textField.textProperty().addListener((observed, oldText, newText) -> {
             // Remove non-numeric characters
@@ -236,6 +264,21 @@ public class ControlPane extends GridPane {
             }
 
             textField.setText(newText);
+
+            // Do action, if applicable
+            switch (field) {
+                case CenterX:
+                case CenterY:
+                case Radius:
+                    // Clear the canvas
+                    ControlPane.this.mApp.resetDrawCanvas();
+                    break;
+                case Width:
+                case Height:
+                    // If box currently shown, update it
+                    ControlPane.this.mApp.updateBoxAspect(this.getSetAspect());
+                    break;
+            }
         });
         
         // Add focus listener
@@ -257,10 +300,6 @@ public class ControlPane extends GridPane {
             }
         });
 
-        textField.setText("" + defaultValue);
-        textField.setFont(Font.loadFont(App.class.getClassLoader().getResource("fonts/NotoSans-Regular.ttf").toExternalForm(), 12));
-        textField.setPrefWidth(100);
-
         return textField;
     }
 
@@ -274,6 +313,21 @@ public class ControlPane extends GridPane {
             }
 
             textField.setText(newText);
+            
+            // Do action, if applicable
+            switch (field) {
+                case CenterX:
+                case CenterY:
+                case Radius:
+                    // Clear the canvas
+                    ControlPane.this.mApp.resetDrawCanvas();
+                    break;
+                case Width:
+                case Height:
+                    // If box currently shown, update it
+                    ControlPane.this.mApp.updateBoxAspect(this.getSetAspect());
+                    break;
+            }
         });
 
         // Add focus listener
@@ -516,6 +570,14 @@ public class ControlPane extends GridPane {
     public double getSavedAspect() {
         try {
             return Double.parseDouble(mSavedImageWidth) / Double.parseDouble(mSavedImageHeight);
+        } catch (Exception e) {
+            return 1.0;
+        }
+    }
+
+    public double getSetAspect() {
+        try {
+            return Double.parseDouble(mImageWidthTextField.getText()) / Double.parseDouble(mImageHeightTextField.getText());
         } catch (Exception e) {
             return 1.0;
         }
