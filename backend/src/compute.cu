@@ -91,9 +91,6 @@ extern "C" {
 		if (data.width % blockSize.x) { gridSize.x += 1; }
 		if (data.height % blockSize.y) { gridSize.y += 1; }
 
-        printf("Block Size: (%d, %d)\n", blockSize.x, blockSize.y);
-        printf("Grid Size: (%d, %d)\n", gridSize.x, gridSize.y);
-
 		// Run kernel
 		compute<<<gridSize, blockSize>>>(pixels, data.width, data.height, iterations, progress_shared);
 		status = cudaPeekAtLastError();

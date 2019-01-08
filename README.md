@@ -2,6 +2,7 @@
 
 ## Problems
 * User can draw box outside of image in GUI
+* Re-rendering even when config is the same
 
 ## To-do
 * Add progress messages to the GUI, such as "preparing" while the render
@@ -16,11 +17,6 @@ copying the exported file from the /tmp directory to a user-decided
 location
 * Maybe add a "Cancel" button while the render is in progress, which
 halts the device threads, or whatever is happening at that time
-* Interacting with the canvas: click to set center, draw box to make new
-render window (saving aspect ratio).  This will require saving the config
-in the Java program and using that to calculate the new center and window
-bounds.
-* Remove excessive logs from Rust gui.rs
 * Make window non-resizable
 * Package frontend and backend into one program
 
