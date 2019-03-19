@@ -1,8 +1,11 @@
 #!/bin/bash
 
 (cd ./backend && CXX=/opt/cuda/bin cargo build) &&
-(cd ./frontend && ./gradlew build) && (
-    (cd ./backend && cargo run -- -g -p 8080) &
-    sleep 1
-    (cd ./frontend && ./gradlew run --args='8080')
+(
+    cd ./backend && cargo run
 )
+#(cd ./frontend && ./gradlew build) && (
+#    (cd ./backend && cargo run -- -g -p 8080) &
+#    sleep 1
+#    (cd ./frontend && ./gradlew run --args='8080')
+#)

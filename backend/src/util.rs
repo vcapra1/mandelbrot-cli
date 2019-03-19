@@ -86,7 +86,7 @@ pub fn can_make_file_here(path: &Path) -> bool {
             false
         } else if path.is_file() {
             print!(
-                "\"{}\" already exists.  Do you want to overwrite? [Y/n] ",
+                "\"{}\" already exists.  Do you want to overwrite? [y/N] ",
                 path.display()
             );
             io::stdout().flush().unwrap();
