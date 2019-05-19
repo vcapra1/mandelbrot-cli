@@ -1,25 +1,5 @@
 # Mandelbrot Set Explorer
 
-## Problems
-* User can draw box outside of image in GUI
-* Re-rendering even when config is the same
-
-## To-do
-* Add progress messages to the GUI, such as "preparing" while the render
-memory is being allocated, and "saving image" while the image is being
-exported, as both tend to take more than a few seconds when the image is
-sufficiently large.
-* Don't ever clone a Render struct, because it holds ALL the pixel data,
-which is a ton of memory, and images larger than about 2k pixels are
-exhausting the memory and crashing the program.
-* In the GUI, add a feature to save the image (which will just require
-copying the exported file from the /tmp directory to a user-decided
-location
-* Maybe add a "Cancel" button while the render is in progress, which
-halts the device threads, or whatever is happening at that time
-* Make window non-resizable
-* Package frontend and backend into one program
-
 ## GUI Controls
 * When the user manually changes a value in a text field (center or radius), the selected region in the canvas should be cleared
 * When the user manually changes a value in an image size text field, the box shown should be updated to reflect the new aspect ratio, only if a box is already there
