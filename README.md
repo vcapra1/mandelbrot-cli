@@ -1,5 +1,7 @@
 # Mandelbrot Set Explorer
 
+This is a CLI for generation Mandelbrot fractals.  It uses the Nvidia CUDA platform to run the computations on an Nvidia graphics card, and therefore requires an Nvidia GPU to run.
+
 ## GUI Controls
 * When the user manually changes a value in a text field (center or radius), the selected region in the canvas should be cleared
 * When the user manually changes a value in an image size text field, the box shown should be updated to reflect the new aspect ratio, only if a box is already there
