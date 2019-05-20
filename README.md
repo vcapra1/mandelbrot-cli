@@ -49,10 +49,3 @@ The backend will be written in Rust, using FFI with C to run CUDA computations. 
 other computations, such as the color function, will be done in Rust because they are not nearly as computationally intensive.  The actual computation is
 O(n^2\*m), where n is the image dimension and m is the max number of iterations.  The color function should be O(n^2), which is much smaller and doesn't involve
 high-precision floating-point computation.
-
-## Front-end
-The front end for this program will be written in Java, as it is easy to write a GUI in Java that is cross-platform.  The Java program and the Rust program will
-communicate via Sockets on a high port.  It will feature a large image display of the current rendered image, allowing users to change parameters directly via
-numerical inputs, or drawing a box on the image to zoom into or out of.
-
-The program will also work purely from the command line, by simply running the Rust program and omitting the GUI flag.
